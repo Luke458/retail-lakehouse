@@ -37,6 +37,7 @@ from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import pyarrow as pa
+import pyarrow.compute as pc
 import pyarrow.csv as pcsv
 import pyarrow.parquet as pq
 
@@ -113,7 +114,30 @@ def write_manifest(folder: Path, feed: str, files: list[dict[str, object]], **ex
     return path
 
 
-FAULTS = ("late", "corrupt")
+# Delivery faults break the drop in transit, so verify catches them. Content
+# faults are what the vendor actually sent: the manifest matches the file, and
+# only the pipeline's own checks can catch them.
+DELIVERY_FAULTS = ("late", "corrupt")
+CONTENT_FAULTS = ("duplicate", "schema", "bad-rows", "restate")
+FAULTS = DELIVERY_FAULTS + CONTENT_FAULTS
+
+
+def break_content(table: pa.Table, fault: str) -> pa.Table:
+    """Apply a content fault to a sales table. Rows are picked by id, so it is repeatable."""
+    ids = table["id"]
+    if fault == "duplicate":  # 1% of rows sent twice
+        return pa.concat_tables([table, table.filter(pc.equal(pc.bit_wise_and(ids, 127), 0))])
+    if fault == "schema":  # the vendor renamed a column
+        return table.rename_columns(["units" if c == "unit_sales" else c for c in table.column_names])
+    if fault == "bad-rows":  # 0.1% of quantities unparseable
+        bad = pc.equal(pc.bit_wise_and(ids, 1023), 0)
+        units = pc.if_else(bad, pa.scalar("n/a"), pc.cast(table["unit_sales"], pa.string()))
+        return table.set_column(table.column_names.index("unit_sales"), "unit_sales", units)
+    if fault == "restate":  # 0.5% of quantities revised up 10%
+        revised = pc.equal(pc.bit_wise_and(ids, 255), 0)
+        units = pc.if_else(revised, pc.multiply(table["unit_sales"], 1.1), table["unit_sales"])
+        return table.set_column(table.column_names.index("unit_sales"), "unit_sales", units)
+    raise ValueError(f"unknown fault {fault!r}")
 
 
 def publish_week(week: date, force: bool = False, fault: str | None = None) -> list[Path]:
@@ -122,7 +146,8 @@ def publish_week(week: date, force: bool = False, fault: str | None = None) -> l
     ``fault`` breaks the sales drop on purpose, for testing the pipeline:
     ``late`` writes the data file but no manifest (publish again without the
     fault to finish it); ``corrupt`` writes a manifest whose sha256 does not
-    match the file.
+    match the file. The content faults (``duplicate``, ``schema``,
+    ``bad-rows``, ``restate``) change what is sent, with a correct manifest.
     """
     if fault not in (None, *FAULTS):
         raise ValueError(f"unknown fault {fault!r}")
@@ -132,6 +157,8 @@ def publish_week(week: date, force: bool = False, fault: str | None = None) -> l
         if (folder / "_MANIFEST.json").exists() and not force:
             continue
         table = read_week(source, week)
+        if feed == "sales" and fault in CONTENT_FAULTS:
+            table = break_content(table, fault)
         files = [write_csv_gz(table, folder / f"{feed}.csv.gz")]
         if feed == "sales" and fault == "late":
             continue

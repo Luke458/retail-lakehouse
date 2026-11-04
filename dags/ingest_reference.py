@@ -2,7 +2,8 @@
 
 The vendor sends these once and republishes them only on change, so there is
 no schedule: trigger it after a reference drop. Same checks and landing as the
-weekly feeds; a republished drop replaces raw as a whole.
+weekly feeds; a republished drop replaces raw as a whole, and the silver
+dimensions are rebuilt from it.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from airflow.sdk import Asset, dag, task
 from retail_lakehouse import landing
 
 REFERENCE = Asset(f"file://{landing.drop_path('raw', 'reference')}")
+SILVER_REFERENCE = Asset(f"file://{landing.lake_root() / 'silver/favorita/reference'}")
 
 
 @dag(
@@ -48,7 +50,12 @@ def ingest_reference():
         record = landing.land(Path(folder), landing.drop_path("raw", "reference"), run_id)
         return record["action"]
 
-    land(verify())
+    @task.bash(pool="spark", outlets=[SILVER_REFERENCE])
+    def silver(run_id=None) -> str:
+        # Small dimensions: replaced whole from the latest raw drop (Spark venv, one JVM).
+        return f"\"$SPARK_PYTHON\" -m retail_lakehouse.spark reference --run-id '{run_id}'"
+
+    land(verify()) >> silver()
 
 
 ingest_reference()

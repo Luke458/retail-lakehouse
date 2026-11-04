@@ -9,3 +9,9 @@ uv venv --python "$PYTHON_VERSION" .venv
 uv pip install --python .venv/bin/python --constraint "$CONSTRAINTS" \
   "apache-airflow[smtp]==${AIRFLOW_VERSION}" pyarrow pandas pytest ruff aiosmtpd
 uv pip install --python .venv/bin/python --no-deps -e .
+
+# Spark side: delta-spark's pins conflict with Airflow's constraints, so it gets its own venv.
+uv venv --python "$PYTHON_VERSION" .venv-spark
+uv pip install --python .venv-spark/bin/python "pyspark==4.2.0" "delta-spark==4.4.1" duckdb pyarrow \
+  "pandas<3" pytest ruff
+uv pip install --python .venv-spark/bin/python --no-deps -e .

@@ -82,3 +82,94 @@ concurrency, or in the cloud week.
   version at it. Delta does this in Week 2.
 - **One task group per feed:** fine for tens of feeds. For hundreds of
   vendors, map over a feed registry in config.
+
+## Week 2: bronze and silver on Delta
+
+**Spark gets its own venv.** `delta-spark` pins `importlib-metadata` below
+the version Airflow's constraints require. Rather than loosen Airflow's
+constraints, the Spark jobs live in `.venv-spark`, and Airflow runs them as
+subprocesses (`python -m retail_lakehouse.spark <job>`), one JVM per task.
+That's also the shape they take as Databricks jobs in Week 5: the
+orchestrator submits, it doesn't host the compute.
+
+**JDK 21, not the system Java.** Spark 4.2 doesn't support Java 27. A
+Temurin 21 tarball in `~/.local/opt` (checksum-verified), selected by
+`JAVA_HOME` in `scripts/env.sh`, leaves the system untouched.
+
+**Bronze is raw with types, not raw cleaned.**
+- The CSV is read with an explicit schema, never inferred.
+- A header that isn't the contract (`SchemaDrift`) fails before anything is
+  written. Guessing that `units` means `unit_sales` is how bad data gets in
+  quietly.
+- Rows that don't parse, have a null key, or fall outside the week go to
+  `quarantine/<feed>` with the raw line and a reason, so nothing is dropped
+  without a record.
+- Over 1% bad rows fails the load, after quarantining, so the rows can be
+  inspected.
+- Bronze plus quarantine must equal the manifest's row count, or the load
+  fails.
+
+**Bronze writes are partition replaces.** `replaceWhere _week_ending = X`
+replaces exactly one week, in bronze and quarantine together. A week already
+loaded from the same raw checksum is skipped, with no new table version.
+
+**Silver is one row per natural key, MERGEd a week at a time.**
+- Duplicates collapse to one row. On a conflict (same key, different values)
+  the highest vendor `id` wins, taken as the later correction. Exact and
+  conflicting duplicates are counted separately, because the second is a
+  data-quality signal and the first usually isn't.
+- `WHEN MATCHED AND row_hash differs THEN UPDATE` rewrites only rows whose
+  values changed. A restatement of 0.5% of rows touches 0.5% of rows.
+- `WHEN NOT MATCHED BY SOURCE` deletes rows the vendor stopped sending, but
+  only inside that week's partition. The predicate is the difference between
+  "restated week" and "deleted history".
+- Partitioned by `week_ending`, and the MERGE condition names the week, so a
+  merge reads one partition, not the table.
+
+**A no-op MERGE still commits.** Delta writes an empty version even when the
+MERGE changes no rows. So each merge is recorded in `control/silver_loads`
+with the bronze checksum, and a rerun from the same checksum skips the MERGE
+entirely. "Rerunning a week changes nothing" then holds for the table
+version too, not just the data. If silver itself is missing, the control
+table is ignored.
+
+**Unknown stays null.** `onpromotion` is null for every row before
+2014-04-01, because the vendor didn't track it. Silver keeps
+`on_promotion` null rather than defaulting it to false, which would invent a
+fact.
+
+**Reconciliation uses a second engine.** DuckDB reads the raw CSV with every
+column as text, applies `TRY_CAST`, deduplicates in its own SQL, and sums.
+Spark's bronze, quarantine and silver must match it on row counts, distinct
+keys and the measure's sum. If Spark checked itself, a bug in the shared
+logic would pass. Reconcile never retries, because a mismatch is a finding,
+not a flake.
+
+**Cross-DAG dependency on data, not on task state.** `transform_favorita`
+waits for the week's `_INGEST.json` in raw, not for `ingest_favorita`'s task
+to succeed (`ExternalTaskSensor`). Either DAG can be rerun or backfilled on
+its own. Asset scheduling was the other option, but asset-triggered runs have
+no data interval, so they can't be backfilled by week.
+
+**Concurrency is set on the tasks, not on the backfill command.** The first
+backfill ran 10 weeks at once: `airflow backfill create --max-active-runs`
+defaults to 10 and overrides the DAG's `max_active_runs=1`. That meant 20
+JVMs, a load average of 68, and concurrent MERGEs into the same table. The
+fix doesn't depend on the person typing the command:
+- every Spark task takes a slot in a 2-slot `spark` pool;
+- `bronze` and `silver` set `max_active_tis_per_dag=1`, so one week at a time
+  writes each layer.
+
+### What breaks at 100x (Week 2)
+
+- **One JVM per task:** the 10-15 s startup dominates at this size and is
+  noise at 100x. On a cluster, submit jobs to a long-lived cluster or job
+  compute, and stop starting a Spark per task.
+- **`max_active_tis_per_dag=1` serializes writers:** fine for one table per
+  feed. At 100x, partition-scoped writes (`replaceWhere`, MERGE on the
+  partition) are safe in parallel only if Delta's conflict detection sees
+  disjoint partitions, so make the partition predicate explicit, as it is
+  here.
+- **DuckDB reconciliation reads the whole raw week:** at 100x, reconcile on
+  aggregates both engines can produce cheaply (per-store counts and sums),
+  not row-level.

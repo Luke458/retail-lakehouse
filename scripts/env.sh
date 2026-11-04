@@ -13,3 +13,7 @@ export AIRFLOW_CONN_SMTP_DEFAULT='smtp://localhost:1025?disable_ssl=true&disable
 export LAKE_ROOT="$REPO/data"
 export FAVORITA_SOURCE="${FAVORITA_SOURCE:-$HOME/Projects/retail-qc/data/real/favorita}"
 export PATH="$REPO/.venv/bin:$PATH"
+# Spark runs in its own venv (delta-spark's pins conflict with Airflow's constraints)
+# on JDK 21 (Spark 4.2 does not run on the system's Java 27).
+export JAVA_HOME="${LAKEHOUSE_JAVA_HOME:-$HOME/.local/opt/jdk-21.0.13+9}"
+export SPARK_PYTHON="$REPO/.venv-spark/bin/python"

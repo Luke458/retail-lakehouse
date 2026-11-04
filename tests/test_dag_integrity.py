@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 DAGS = Path(__file__).resolve().parents[1] / "dags"
+pytest.importorskip("airflow")
 pytestmark = pytest.mark.skipif(not list(DAGS.rglob("*.py")), reason="no DAGs yet")
 
 
@@ -20,8 +21,13 @@ def test_dags_import_cleanly(dagbag):
     assert dagbag.dags
 
 
-def test_every_task_retries(dagbag):
-    no_retries = [f"{d.dag_id}.{t.task_id}" for d in dagbag.dags.values() for t in d.tasks if not t.retries]
+def test_every_task_retries_or_says_why_not(dagbag):
+    no_retries = [
+        f"{d.dag_id}.{t.task_id}"
+        for d in dagbag.dags.values()
+        for t in d.tasks
+        if not t.retries and not (t.doc_md or "").startswith("No retry:")
+    ]
     assert no_retries == []
 
 
