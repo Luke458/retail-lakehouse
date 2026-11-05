@@ -69,3 +69,15 @@ jobs:
       - run: scripts/setup.sh spark
       - run: scripts/setup.sh dbt
       - run: scripts/ci.sh dbt
+
+  infra:
+    name: OpenTofu fmt + validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 1.13.8
+          tofu_wrapper: false
+      - run: scripts/ci.sh infra

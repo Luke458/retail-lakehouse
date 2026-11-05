@@ -28,3 +28,6 @@ export DBT_SEND_ANONYMOUS_USAGE_STATS=False
 # verity (the gate) and dbt each have their own venv too.
 export QC_PYTHON="$REPO/.venv-qc/bin/python"
 export DBT="$REPO/.venv-dbt/bin/dbt"
+# OpenTofu for infra/ (user-space install; in CI, opentofu/setup-opentofu puts it on PATH).
+# (An if, not `[ ] &&`: as the last line, a false test would fail every `set -e` script sourcing this.)
+if [ -x "$HOME/.local/opt/tofu-1.13.8/tofu" ]; then export PATH="$HOME/.local/opt/tofu-1.13.8:$PATH"; fi

@@ -303,3 +303,39 @@ the same bundle into a Databricks deployment.
 - The fixture is hand-built. With more feeds and edge cases, fixtures should
   be generated from contracts (each feed's schema and the faults it must
   survive), and the fault matrix runs in CI against the fixture.
+
+## Week 5: Azure and Databricks (code only)
+
+**OpenTofu, not Terraform.** Same language and providers (azurerm,
+databricks), open-source licence, installable without an account. The code
+runs under either.
+
+**Files and tables have separate roots.** On Databricks, Delta tables live
+at `abfss://` URIs, but the Python code also reads and writes plain files
+(drops, manifests, raw CSVs, reports) with `pathlib`. A Unity Catalog
+volume gives those files an ordinary path (`/Volumes/...`), so `LAKE_ROOT`
+stays a path and only the tables move, via `TABLE_ROOT`. Locally both are
+the same folder. The change touched one function (`table_path`), because
+every Delta read and write already went through it.
+
+**Identity, not keys.** The storage account has shared keys disabled.
+Databricks reaches it as the access connector's managed identity, through a
+Unity Catalog storage credential, so no secret sits in a cluster config.
+
+**The schedule stays in Airflow.** The Databricks job has no schedule of
+its own. Airflow triggers it per week with a `week` parameter, as it runs
+the Spark commands locally, so retries, alerts and the gate keep one
+orchestrator.
+
+**Apply, run, destroy.** The workspace's managed networking has an hourly
+cost whether or not a job runs, so the cloud proof is a single session, not
+a standing environment.
+
+### What breaks at 100x (Week 5)
+
+- A single-node job cluster per week. At 100x the data, a small autoscaling
+  job cluster, partitioned silver tables, and the two feeds as parallel
+  tasks.
+- One workspace and local state. Several environments need remote state per
+  environment, CI deploying with OIDC federation (no stored secrets), and
+  workspace configuration in modules shared across environments.

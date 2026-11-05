@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The CI pipeline, runnable locally. GitHub Actions calls the same stages.
 #
-#   scripts/ci.sh [lint|airflow|spark|dbt|all]
+#   scripts/ci.sh [lint|airflow|spark|dbt|infra|all]
 #
 # Each stage uses the venvs from scripts/setup.sh. `dbt` builds a tiny fixture
 # lake with the real simulator, landing and Spark jobs, then runs `dbt build`
@@ -37,11 +37,17 @@ print(f"fixture gold: {weeks} weeks, {rows} store-family rows")
 PY
 }
 
+# Format and validate only: no credentials, no plan. Downloads the providers.
+infra_validate() {
+  (cd infra && tofu init -backend=false -input=false >/dev/null && tofu fmt -check -recursive && tofu validate)
+}
+
 case $stage in
   lint) lint ;;
   airflow) airflow_tests ;;
   spark) spark_tests ;;
   dbt) dbt_build ;;
-  all) lint && airflow_tests && spark_tests && dbt_build ;;
+  infra) infra_validate ;;
+  all) lint && airflow_tests && spark_tests && dbt_build && infra_validate ;;
   *) echo "unknown stage $stage" >&2; exit 2 ;;
 esac

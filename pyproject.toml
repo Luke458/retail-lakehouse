@@ -6,6 +6,10 @@ requires-python = ">=3.12,<3.13"
 # Airflow is installed separately against its constraints file; see scripts/setup.sh.
 dependencies = ["pyarrow", "pandas"]
 
+[project.scripts]
+# The Databricks job's python_wheel_task entry point (infra/databricks.tf).
+retail-lakehouse-spark = "retail_lakehouse.spark.__main__:main"
+
 [build-system]
 requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"

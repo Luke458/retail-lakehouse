@@ -94,7 +94,7 @@ built and proven, not handed back.
 
 ### Week 5: Terraform on Azure (code only)
 
-- [ ] 8. Install Terraform or OpenTofu in user space (verified checksum).
+- [x] 8. Install Terraform or OpenTofu in user space (verified checksum).
   Write `infra/`:
   - resource group, ADLS Gen2 storage account, Databricks workspace, and a
     Databricks job that runs the Spark jobs;
@@ -102,7 +102,7 @@ built and proven, not handed back.
   - variables, outputs, tags, and a cost note.
   - Run `fmt`, `validate`, and `tflint` if available. No `plan` against
     real credentials, no `apply`.
-- [ ] 9. Make the Spark jobs runnable on Databricks unchanged: paths from
+- [x] 9. Make the Spark jobs runnable on Databricks unchanged: paths from
   config (`abfss://` vs local), and a job definition. Notes in
   `notes/week-05.md`, commit. Stop the Week 5 cloud run at the Azure
   question.
@@ -155,3 +155,4 @@ built and proven, not handed back.
 - 2026-11-05: task 5, `missing-store` fault (new simulator fault: store 44, the largest, 5.6% of units, dropped from the drop) on new week 2016-04-19: verity **INVESTIGATE**, likely cause MISSING_STORES. "1 store absent, expected 302,515 (5.64%) vs limit 0.10%: material". Gold fingerprint unchanged, alert sent (15th email). Two fixes found on the way: `replay.sh` needed `--reprocess-behavior` for the gate's `depends_on_past` DAG, and the alert's findings now lead with materially missing entities (verity reports them as events, and the blocking finding names none). Now replaying 04-19 clean, then 04-26 and 05-03 (post-earthquake weeks, 16 Apr 2016).
 - 2026-11-05: task 5 done. Clean redelivery of 2016-04-19: INVESTIGATE (historical correction). 2016-04-26 and 05-03: INVESTIGATE (Manabí after the earthquake; school supplies, a family with no 2015 sales). 2016-05-10, 05-17, 05-24: PASS, and gold updated (103 weeks, equal to silver; the blocked weeks not served). Totals: clean-week false alarms 9/20 (45%; verity's own Favorita evaluation reports about 30/100), faults caught 1/2 (missing store yes, 0.04% restate no). Notes in `notes/week-03.md`, decisions updated.
 - 2026-11-05: Week 3 committed (`dccc202` on `week-03`). Tasks 6 and 7 done on `week-04`. `scripts/ci.sh all` exit 0 in 72 s. A new dbt test, `gold_units_match_silver`, passes on the real lake (103 weeks) and on the fixture, and `ci.sh` checks that fixture gold isn't empty. Three broken changes each fail their stage: gold excluding returns, `FAIL gold_units_match_silver`; `retries=0` on the gate, the DAG integrity test; an unused import, ruff F401. `package.sh` bundle checked. The workflows have not run on GitHub (Questions). Notes in `notes/week-04.md`.
+- 2026-11-05: Week 4 committed (`d64ef12` on `week-04`). Tasks 8 and 9 done on `week-05`. OpenTofu 1.13.8 installed in user space (sha256 and GPG signature verified). `infra/` validates (azurerm 5.12.0, databricks 1.141.0): ADLS Gen2, Databricks workspace, access connector, Unity Catalog storage, and the weekly transform job. Spark jobs take `TABLE_ROOT` (abfss) for tables and `LAKE_ROOT` (a UC volume) for files, use the runtime session on Databricks, and have a wheel entry point. Proven locally with the real bronze job writing to a separate `TABLE_ROOT`. CI has an `infra` stage. No plan or apply (Questions: Azure). Notes in `notes/week-05.md`.

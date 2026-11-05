@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import gzip
+import os
 from pathlib import Path
 
 from retail_lakehouse.landing import drop_path, lake_root
@@ -43,8 +44,20 @@ def check_header(path: Path, feed: str) -> None:
         )
 
 
+def on_databricks() -> bool:
+    return "DATABRICKS_RUNTIME_VERSION" in os.environ
+
+
+def table_root() -> str:
+    """Where the Delta tables live: ``$TABLE_ROOT`` (``abfss://tables@<account>.dfs.core.windows.net/``
+    on Databricks), else the lake folder. Files (drops, raw, reports) stay under ``lake_root()``,
+    which on Databricks is a Unity Catalog volume: an ordinary path for Python and Spark alike."""
+    return os.environ.get("TABLE_ROOT") or str(lake_root())
+
+
 def table_path(layer: str, name: str) -> str:
-    return str(lake_root() / layer / "favorita" / name)
+    # A string join: pathlib would collapse "abfss://" to "abfss:/".
+    return f"{table_root().rstrip('/')}/{layer}/favorita/{name}"
 
 
 def raw_file(feed: str, week=None) -> Path:
@@ -53,8 +66,13 @@ def raw_file(feed: str, week=None) -> Path:
 
 
 def spark_session(app: str = "retail-lakehouse"):
-    from delta import configure_spark_with_delta_pip
+    """A local Spark with Delta, or on Databricks the runtime's own session (Delta built in)."""
     from pyspark.sql import SparkSession
+
+    if on_databricks():
+        return SparkSession.builder.appName(app).getOrCreate()
+
+    from delta import configure_spark_with_delta_pip
 
     builder = (
         SparkSession.builder.master("local[4]")

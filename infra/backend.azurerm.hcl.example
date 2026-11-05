@@ -1,0 +1,11 @@
+# Remote state for a shared deployment: a storage account of its own, created
+# once by hand or by a bootstrap stack, with blob versioning and soft delete.
+# The azurerm backend locks state with a blob lease.
+#
+#   cp backend.azurerm.hcl.example backend.azurerm.hcl   # fill in, do not commit
+#   tofu init -backend-config=backend.azurerm.hcl -migrate-state
+resource_group_name  = "rg-tfstate"
+storage_account_name = "sttfstateCHANGEME"
+container_name       = "tfstate"
+key                  = "retail-lakehouse/dev.tfstate"
+use_azuread_auth     = true

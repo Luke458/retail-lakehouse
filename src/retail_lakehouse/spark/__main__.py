@@ -6,6 +6,10 @@
     python -m retail_lakehouse.spark reference --run-id manual
 
 The last line on stdout is the job's result as JSON (Airflow keeps it as XCom).
+
+On Databricks the same commands run as the wheel's ``retail-lakehouse-spark``
+entry point (``infra/databricks.tf``), with ``LAKE_ROOT`` a Unity Catalog
+volume and ``TABLE_ROOT`` the tables container.
 """
 
 from __future__ import annotations
@@ -29,7 +33,7 @@ def main(argv: list[str] | None = None) -> None:
         parser.error(f"{args.job} needs --feed and --week")
 
     from retail_lakehouse.spark import bronze, reconcile, silver
-    from retail_lakehouse.spark.common import spark_session
+    from retail_lakehouse.spark.common import on_databricks, spark_session
 
     spark = spark_session(f"{args.job}-{args.feed or 'reference'}-{args.week or ''}")
     try:
@@ -42,7 +46,8 @@ def main(argv: list[str] | None = None) -> None:
         else:
             result = silver.load_reference(spark, args.run_id)
     finally:
-        spark.stop()
+        if not on_databricks():  # a Databricks job owns its session; stopping it fails the run
+            spark.stop()
     sys.stdout.write(json.dumps(result, default=str) + "\n")
 
 
