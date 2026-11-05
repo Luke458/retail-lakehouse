@@ -52,6 +52,7 @@ scripts/backfill.sh transform_favorita "$(logical "$first")" "$(logical "$last")
 
 echo "== 3. gate history and gold"
 "$QC_PYTHON" -m retail_lakehouse.gate bootstrap --through "$history_end" --run-id demo
+mkdir -p "$LAKE_ROOT/gold" # DuckDB does not create the folder of a new database file
 "$DBT" build --full-refresh --quiet
 
 echo "== 4. gate and publish the last 4 weeks"

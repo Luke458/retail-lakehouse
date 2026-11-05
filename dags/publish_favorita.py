@@ -85,7 +85,11 @@ def publish_favorita():
 
     @task.bash(max_active_tis_per_dag=1, outlets=[GOLD])
     def build_gold(week: str) -> str:
-        return f'"$DBT" build --select gold --vars \'{{week_ending: "{week}"}}\' && "$DBT" source freshness'
+        # DuckDB does not create the folder of a new database file.
+        return (
+            f'mkdir -p "$LAKE_ROOT/gold" && "$DBT" build --select gold --vars \'{{week_ending: "{week}"}}\''
+            ' && "$DBT" source freshness'
+        )
 
     @task
     def quarantine(week: str) -> str:
