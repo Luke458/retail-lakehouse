@@ -77,9 +77,10 @@ Measured on the real data, with the numbers and the reasoning in `notes/`:
     Carnaval moving a week, the April 2016 earthquake.
 
   (`week-03.md`)
-- **Week 4, CI:** `scripts/ci.sh` runs the GitHub Actions stages locally
-  in about 75 s. A gold filter bug, a task without retries and an unused
-  import each fail their stage. (`week-04.md`)
+- **Week 4, CI:** GitHub Actions on every PR, about 2 minutes. A PR that
+  broke gold failed on the gold-equals-silver test and was closed; a valid
+  PR passed and merged, and the deploy workflow packaged the bundle.
+  `scripts/ci.sh` runs the same stages locally. (`week-04.md`)
 - **Week 5, Azure:** OpenTofu for ADLS Gen2 and Databricks, plus the job;
   `tofu validate` passes; the Spark jobs take their paths from config.
   Code only: nothing applied. (`week-05.md`)
