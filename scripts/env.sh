@@ -15,5 +15,16 @@ export FAVORITA_SOURCE="${FAVORITA_SOURCE:-$HOME/Projects/retail-qc/data/real/fa
 export PATH="$REPO/.venv/bin:$PATH"
 # Spark runs in its own venv (delta-spark's pins conflict with Airflow's constraints)
 # on JDK 21 (Spark 4.2 does not run on the system's Java 27).
-export JAVA_HOME="${LAKEHOUSE_JAVA_HOME:-$HOME/.local/opt/jdk-21.0.13+9}"
+# In GitHub Actions, actions/setup-java exports JAVA_HOME_21_X64.
+export JAVA_HOME="${LAKEHOUSE_JAVA_HOME:-${JAVA_HOME_21_X64:-$HOME/.local/opt/jdk-21.0.13+9}}"
 export SPARK_PYTHON="$REPO/.venv-spark/bin/python"
+# dbt: project in dbt/, everything it writes under data/dbt/.
+export DBT_PROJECT_DIR="$REPO/dbt"
+export DBT_PROFILES_DIR="$REPO/dbt"
+export DBT_TARGET_PATH="$LAKE_ROOT/dbt/target"
+export DBT_LOG_PATH="$LAKE_ROOT/dbt/logs"
+export DBT_PACKAGES_INSTALL_PATH="$LAKE_ROOT/dbt/packages"
+export DBT_SEND_ANONYMOUS_USAGE_STATS=False
+# verity (the gate) and dbt each have their own venv too.
+export QC_PYTHON="$REPO/.venv-qc/bin/python"
+export DBT="$REPO/.venv-dbt/bin/dbt"

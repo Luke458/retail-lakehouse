@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
-# Stop the local Airflow processes started by scripts/airflow.sh:
-# SIGTERM, then SIGKILL whatever is left after 30 seconds.
+# Stop the local Airflow processes started by scripts/airflow.sh: the
+# supervisor, then the components: SIGTERM, then SIGKILL whatever is left after 30 seconds.
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
+# The supervisor first, so it doesn't restart what is stopped next.
+supervisor="$REPO/.airflow/supervisor.pid"
+if [ -f "$supervisor" ]; then
+  kill "$(cat "$supervisor")" 2>/dev/null
+  rm -f "$supervisor"
+fi
 find_pids() { pgrep -f "$REPO/.venv/bin/airflow|^airflow (api_server|serve-logs|worker)"; }
 pids=$(find_pids)
 [ -z "$pids" ] && { echo "airflow not running"; exit 0; }

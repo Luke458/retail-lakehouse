@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: stg_stores
+    columns:
+      - name: store_nbr
+        data_tests: [unique, not_null]
+      - name: state
+        data_tests: [not_null]
+  - name: stg_items
+    columns:
+      - name: item_nbr
+        data_tests: [unique, not_null]
+      - name: family
+        data_tests: [not_null]
+  - name: stg_holidays
+    columns:
+      - name: scope
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [national, regional, local]

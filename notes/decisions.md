@@ -173,3 +173,100 @@ fix doesn't depend on the person typing the command:
 - **DuckDB reconciliation reads the whole raw week:** at 100x, reconcile on
   aggregates both engines can produce cheaply (per-store counts and sums),
   not row-level.
+
+## Week 3: dbt gold and the verity gate
+
+**dbt-duckdb locally, dbt-databricks in the cloud.** Gold is a DuckDB database
+(`data/gold/favorita.duckdb`). dbt reads the silver Delta tables through
+DuckDB's `delta` extension (`delta_scan`), with no Spark and no Thrift
+server. The silver tables use the basic Delta protocol (reader v1), which
+`delta_scan` reads. Sums match the reconcile reports. dbt gets its own venv
+(`.venv-dbt`), like Spark, so the three toolchains never negotiate a shared
+dependency set. In Week 5 the same models run on Databricks under
+`dbt-databricks`. Only the source definitions and a few dialect macros differ.
+
+**Gold is incremental by week, and only approved weeks enter it.** The gate
+sits between silver and gold, but silver has already merged the week by the
+time the gate runs. If gold were rebuilt from all of silver, a quarantined
+week would leak in on the next good week's build. So each gold model
+processes only the run's week (`delete+insert` on `week_ending`), and only
+when the gate approved it. A blocked week leaves gold exactly as it was,
+including that week's last good version if it had one. A
+`dbt build --full-refresh` rebuilds from approved weeks only. A week whose
+latest decision is "blocked" is then dropped rather than frozen, which is
+written into the runbook.
+
+**What the gate blocks, and what it doesn't.** verity's status is the
+verdict. `PASS` and `PASS_WITH_EXPLANATION` publish. `INVESTIGATE`,
+`DATA_CONTRACT_FAILURE` and `INCOMPLETE` quarantine. verity failing to run
+(exit 1) or being locked by another run (exit 75) is not a verdict. The gate
+task fails and retries, records no decision, and gold isn't built, because
+`decide` has nothing to read. Treating a crash as a quarantine would bury an
+infrastructure fault among data findings, and treating it as a pass would
+publish unchecked data.
+
+**Why block rather than warn.** The gold tables feed weekly reporting. A
+restated or half-delivered week that reaches gold is consumed before anyone
+reads an alert, and correcting a published number costs more than publishing
+a day late. The trade-off is false alarms. verity flagged about 30 of 100
+clean Favorita weeks in its own evaluation, so some clean weeks will wait for
+a person. That is why `release` exists: a named person records an approval
+with a reason, verity's status is kept unchanged next to it, and the next
+`decide` builds the week.
+
+**The gate keeps its own table.** verity compares two Delta versions, but
+silver commits several versions per week (each feed's MERGE, reference
+loads). The gate writes one version per gated week to
+`gate/favorita_weekly`, at verity's grain (store × item × week net units), so
+each assessment is "this week arrived" against the version before it. A run
+whose rows are unchanged reuses its decision instead of writing a new version
+that verity would compare with itself. Weeks loaded before the gate went live
+are written once, as version 0, and recorded as approved `PRE_GATE` history,
+not as assessed.
+
+**Weeks are gated in order** (`depends_on_past` on `gate`): each version
+pair assumes the previous week is already in the table. A quarantined week
+still counts as done for that chain. Its rows are in the gate table and its
+decision is recorded, so later weeks proceed and are compared against what
+actually arrived.
+
+**Supervised Airflow components instead of `airflow standalone`.** On the
+SQLite metadata DB, creating a backfill while the scheduler is updating the
+same runs can kill the scheduler (`database is locked`, then
+`StaleDataError`). It happened twice during the history backfill.
+`standalone` never restarts a dead component, so runs sat queued with
+nothing running them. `scripts/airflow.sh` now runs the scheduler, DAG
+processor, API server and triggerer each in its own restart loop. The root
+cause is SQLite's single writer. At 100x, or with more than one person, the
+metadata DB is Postgres and the components run as separate services under a
+process manager (systemd, or Kubernetes in the cloud). The restart loop is
+the local stand-in for that.
+
+**Measured, not tuned.** On 20 clean weeks the gate blocked 9 (45%). It
+caught a missing store (5.6% of units) and passed a 0.04% restatement as
+immaterial. I left verity's configuration at its defaults rather than tune
+it to the weeks I measured it on. Both its expectation (seasonal-naive, so
+2016 is compared with an early 2015 that is missing about 600 products) and
+its materiality (0.1% of the whole compared history) are design questions
+for verity, written down for its author. The pipeline side is what this
+project controls: a blocked week costs a person's review, never a wrong
+number in gold.
+
+### What breaks at 100x (Week 3)
+
+- **The gate table.** It holds every week at store × item grain (8.3M rows
+  for 92 weeks, 42 MB), and each assessment reads the whole of it: 56 s
+  today. At 100x the stores and items, verity would compare a rolling
+  window (a year or two) instead of all history, with older weeks
+  compacted out. That also tightens the history-revision materiality,
+  which is a share of the compared total.
+- **One gate run at a time.** `depends_on_past` keeps the version chain in
+  order, so a backlog drains one week per minute. With more feeds, each
+  dataset gets its own gate table and chain, and they run in parallel.
+- **Human release at a 45% false-alarm rate** is a part-time job. At scale,
+  approvals need to be cheap and remembered: verity's approval records
+  (approved closures, expected events) rather than a release command per
+  week. So does a lower false-alarm rate, which is verity's to fix.
+- **Gold in a DuckDB file.** One writer, one machine. At 100x, gold is a
+  Delta table on Databricks (`dbt-databricks`, Week 5). The per-week
+  `delete+insert` and the approved-weeks filter carry over unchanged.

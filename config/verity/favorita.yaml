@@ -1,0 +1,22 @@
+# verity's Favorita configuration, from retail-qc experiments/real/favorita.py (CONFIG),
+# with the stage renamed to the Delta default ("warehouse"). Favorita has no prices,
+# so the engine runs on units alone. Engine defaults otherwise, including
+# share_baseline: engine (Timestral stays opt-in and off here).
+name: favorita-ecuador
+week_column: week
+entity_columns: [store_id, product_id, commodity_id, state_id]
+metric_columns: [units]
+primary_metric: units
+unit_value_metric: ""
+required_columns: [week, units]
+analysis_stage: warehouse
+contract_stage: warehouse
+stage_preference: [warehouse]
+pipeline_order: [warehouse]
+report_grain: [state_id]
+stage_keys:
+  warehouse: [store_id, product_id]
+hierarchy_columns: [[state_id]]
+explanation_entity_types: [store, state, product, commodity]
+snapshot_metrics: []
+temporal_entity_columns: [state_id, commodity_id]

@@ -103,3 +103,10 @@ def test_republishing_unchanged_data_gives_identical_bytes(lake):
     first = drops.sha256(folder / "sales.csv.gz")
     drops.publish_week(date(2016, 1, 12), force=True)
     assert drops.sha256(folder / "sales.csv.gz") == first
+
+
+def test_break_content_missing_store_drops_only_that_store():
+    table = pa.table(
+        {"id": [1, 2, 3], "store_nbr": [1, drops.MISSING_STORE, 2], "unit_sales": [1.0, 2.0, 3.0]}
+    )
+    assert drops.break_content(table, "missing-store")["id"].to_pylist() == [1, 3]

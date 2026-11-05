@@ -1,0 +1,21 @@
+name: retail_lakehouse
+version: "1.0.0"
+profile: retail_lakehouse
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+
+vars:
+  # The week this run builds (a Tuesday). Unset: build every approved week.
+  week_ending: null
+  # Only weeks the verity gate approved enter gold. Off only for local development.
+  require_gate: true
+
+models:
+  retail_lakehouse:
+    staging:
+      +materialized: view
+    gold:
+      +materialized: incremental
+      +incremental_strategy: delete+insert
+      +unique_key: week_ending

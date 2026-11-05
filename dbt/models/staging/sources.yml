@@ -1,0 +1,30 @@
+version: 2
+
+sources:
+  - name: silver
+    description: Silver Delta tables written by the Spark jobs (read with DuckDB's delta_scan).
+    meta:
+      external_location: "delta_scan('{{ env_var('LAKE_ROOT') }}/silver/favorita/{name}')"
+    loaded_at_field: _updated_at
+    config:
+      freshness:
+        warn_after: {count: 8, period: day}
+        error_after: {count: 15, period: day}
+    tables:
+      - name: sales
+        description: One row per date, store and item.
+      - name: transactions
+        description: One row per date and store.
+      - name: stores
+        config: {freshness: null}
+      - name: items
+        config: {freshness: null}
+      - name: holidays_events
+        config: {freshness: null}
+
+  - name: gate
+    description: The gate's decisions, one file per decision (python -m retail_lakehouse.gate).
+    meta:
+      external_location: "read_json_auto('{{ env_var('LAKE_ROOT') }}/control/gate/*/decision-*.json', union_by_name = true, format = 'auto')"
+    tables:
+      - name: decisions

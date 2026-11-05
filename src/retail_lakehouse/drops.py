@@ -118,7 +118,8 @@ def write_manifest(folder: Path, feed: str, files: list[dict[str, object]], **ex
 # faults are what the vendor actually sent: the manifest matches the file, and
 # only the pipeline's own checks can catch them.
 DELIVERY_FAULTS = ("late", "corrupt")
-CONTENT_FAULTS = ("duplicate", "schema", "bad-rows", "restate")
+CONTENT_FAULTS = ("duplicate", "schema", "bad-rows", "restate", "missing-store")
+MISSING_STORE = 44  # the largest store by units; its rows vanish from the drop
 FAULTS = DELIVERY_FAULTS + CONTENT_FAULTS
 
 
@@ -137,6 +138,8 @@ def break_content(table: pa.Table, fault: str) -> pa.Table:
         revised = pc.equal(pc.bit_wise_and(ids, 255), 0)
         units = pc.if_else(revised, pc.multiply(table["unit_sales"], 1.1), table["unit_sales"])
         return table.set_column(table.column_names.index("unit_sales"), "unit_sales", units)
+    if fault == "missing-store":  # one store's sales left out, the manifest still correct
+        return table.filter(pc.not_equal(table["store_nbr"], MISSING_STORE))
     raise ValueError(f"unknown fault {fault!r}")
 
 
@@ -147,7 +150,7 @@ def publish_week(week: date, force: bool = False, fault: str | None = None) -> l
     ``late`` writes the data file but no manifest (publish again without the
     fault to finish it); ``corrupt`` writes a manifest whose sha256 does not
     match the file. The content faults (``duplicate``, ``schema``,
-    ``bad-rows``, ``restate``) change what is sent, with a correct manifest.
+    ``bad-rows``, ``restate``, ``missing-store``) change what is sent, with a correct manifest.
     """
     if fault not in (None, *FAULTS):
         raise ValueError(f"unknown fault {fault!r}")

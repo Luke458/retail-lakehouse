@@ -1,0 +1,8 @@
+retail_lakehouse:
+  target: local
+  outputs:
+    local:
+      type: duckdb
+      path: "{{ env_var('LAKE_ROOT') }}/gold/favorita.duckdb"
+      extensions: [delta]
+      threads: 4

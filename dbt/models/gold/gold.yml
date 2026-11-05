@@ -1,0 +1,58 @@
+version: 2
+
+models:
+  - name: fct_sales_store_family_week
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [week_ending, store_nbr, family]}
+    columns:
+      - name: week_ending
+        data_tests: [not_null]
+      - name: store_nbr
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('stg_stores'), field: store_nbr}
+      - name: family
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('stg_items'), field: family}
+      - name: items_sold
+        data_tests:
+          - between:
+              arguments: {min_value: 1}
+      - name: units_returned
+        data_tests:
+          - between:
+              arguments: {min_value: 0}
+  - name: fct_sales_state_week
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [week_ending, state, family]}
+  - name: fct_store_transactions_week
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [week_ending, store_nbr]}
+    columns:
+      - name: transactions
+        data_tests:
+          - between:
+              arguments: {min_value: 0}
+      - name: trading_days
+        data_tests:
+          - between:
+              arguments: {min_value: 1, max_value: 7}
+  - name: fct_store_holiday_days
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [date, store_nbr]}
+  - name: mart_promo_uplift_family_week
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [week_ending, family]}
+    columns:
+      - name: uplift_ratio
+        data_tests:
+          - between:
+              arguments: {min_value: 0}
