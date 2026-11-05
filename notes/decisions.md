@@ -339,3 +339,31 @@ a standing environment.
 - One workspace and local state. Several environments need remote state per
   environment, CI deploying with OIDC federation (no stored secrets), and
   workspace configuration in modules shared across environments.
+
+## Week 6: packaging
+
+**A fresh clone is the test of the README.** Three bugs only showed up
+there: a formatting check on a file written after the last CI run, a DAG
+registration race on a new install, and a missing folder on a new lake.
+Each is a first-run problem. A developer's checkout, with its long-lived
+state, never hits them. The demo is rerunnable, so fixing one didn't mean
+starting the 30-minute run again.
+
+**Tombstones instead of WHEN NOT MATCHED BY SOURCE.** Deleting rows the
+vendor stopped sending inside the same MERGE keeps a week's correction
+atomic. But the NOT MATCHED BY SOURCE clause turns off file pruning, so the
+cost of a weekly load grew with the table: every week rewrote every week.
+Computing the week's vanished keys first (an anti-join on one partition)
+and matching them as delete markers keeps the single commit and touches one
+partition. Found by looking at disk use, not by a failing test. The new
+test pins the property: merging one week leaves another week's files
+alone.
+
+### What breaks at 100x (Week 6)
+
+- Before the fix, silver: each weekly MERGE rewrote the whole table, so
+  storage and time grew with the square of the weeks loaded. At 100x the
+  data that is hours per week and terabytes of dead files. Fixed. VACUUM
+  still has to run on a schedule (a weekly maintenance task after the 7-day
+  retention), and the tables want OPTIMIZE once partitions hold many small
+  files.

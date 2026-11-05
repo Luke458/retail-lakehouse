@@ -110,3 +110,17 @@ def test_summarize_names_materially_missing_entities_first():
     }
     kept = [(f["check"], f["scope"], f["impact"]) for f in gate.summarize(machine)]
     assert kept == [("missing", "S44", -302515.4), ("temporal", "Guayas", 900000.0)]
+
+
+def test_summarize_states_the_size_of_a_material_revision():
+    machine = {
+        "historical_revision": {"material": True, "raw_delta": -295512.066},
+        "findings": [{"check": "historical_revision", "disposition": "UNEXPLAINED_ANOMALY", "impact": 0.0}],
+    }
+    first = gate.summarize(machine)[0]
+    assert (first["check"], first["disposition"], first["impact"]) == (
+        "historical_revision",
+        "MATERIAL",
+        -295512.066,
+    )
+    assert gate.summarize({"historical_revision": {"material": False, "raw_delta": 2058.0}}) == []

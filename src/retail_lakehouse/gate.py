@@ -211,11 +211,28 @@ SUMMARY_KEYS = ("check", "disposition", "scope_type", "scope", "metric", "period
 def summarize(machine: dict[str, Any]) -> list[dict[str, Any]]:
     """What verity puts up for review, short enough for an alert.
 
-    First the entities missing from the latest week, for each entity type whose
-    loss verity rates material: verity reports them as events, and the finding
-    that blocks on them names no entity. Then the review findings, largest
-    impact first.
+    First what the blocking findings leave unnamed: a material revision of
+    already-gated weeks, with its size (the finding itself carries impact 0),
+    and the entities missing from the latest week, for each entity type whose
+    loss verity rates material (verity reports them as events). Then the
+    review findings, largest impact first.
     """
+    history = machine.get("historical_revision") or {}
+    revised = (
+        [
+            {
+                "check": "historical_revision",
+                "disposition": "MATERIAL",
+                "scope_type": "history",
+                "scope": "weeks already gated",
+                "metric": "units",
+                "period": None,
+                "impact": history.get("raw_delta"),
+            }
+        ]
+        if history.get("material")
+        else []
+    )
     material = {
         kind for kind, entry in (machine.get("missing_entities") or {}).items() if entry.get("material")
     }
@@ -241,7 +258,7 @@ def summarize(machine: dict[str, Any]) -> list[dict[str, Any]]:
     def largest_first(items):
         return sorted(items, key=lambda f: -abs(f["impact"] or 0))
 
-    return (largest_first(missing) + largest_first(findings))[:20]
+    return (revised + largest_first(missing) + largest_first(findings))[:20]
 
 
 def release(week: date, by: str, reason: str) -> dict[str, Any]:
