@@ -1,5 +1,7 @@
 # retail-lakehouse
 
+[![ci](https://github.com/Luke458/retail-lakehouse/actions/workflows/ci.yml/badge.svg)](https://github.com/Luke458/retail-lakehouse/actions/workflows/ci.yml)
+
 A weekly retail data pipeline that refuses to publish numbers it can't
 vouch for.
 
