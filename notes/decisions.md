@@ -270,3 +270,36 @@ number in gold.
 - **Gold in a DuckDB file.** One writer, one machine. At 100x, gold is a
   Delta table on Databricks (`dbt-databricks`, Week 5). The per-week
   `delete+insert` and the approved-weeks filter carry over unchanged.
+
+## Week 4: CI/CD
+
+**CI runs the production code on a fixture, not a mock.** The fixture lake
+(3 stores, 24 items, 2 weeks) goes through the real simulator, landing, and
+Spark bronze and silver jobs, so `dbt build` in CI reads silver produced the
+way production produces it. The stage takes about 30 s, most of it a Spark JVM. The gate
+is the one stage CI does not run: verity has its own CI, and an assessment
+needs 26+ weeks of history. The fixture records its weeks as `FIXTURE`
+approvals, so gold's approved-weeks filter is still exercised.
+
+**A test that would have caught a real class of bug.** Most dbt tests
+(unique, not null, relationships, ranges) pass on wrong totals. The
+singular test `gold_units_match_silver` compares each served week's units
+with silver's. A filter or a join that drops or duplicates rows fails it.
+That is the broken change used in the proof.
+
+**One job per venv.** Airflow, Spark and dbt never share a venv (Week 2), so
+CI installs one per job and runs them in parallel. A change to the Spark
+pins doesn't rebuild the Airflow environment.
+
+**Deploy is an artifact for now.** Merge to `main`, then CI green, then a
+versioned bundle (wheel, DAGs, dbt, config, commit manifest). Week 5 turns
+the same bundle into a Databricks deployment.
+
+### What breaks at 100x (Week 4)
+
+- The Spark and dbt jobs each start a JVM and download Delta's jars on a
+  cold cache. At more jobs, a prebuilt CI image with the JDK and jars saves
+  most of the setup time.
+- The fixture is hand-built. With more feeds and edge cases, fixtures should
+  be generated from contracts (each feed's schema and the faults it must
+  survive), and the fault matrix runs in CI against the fixture.

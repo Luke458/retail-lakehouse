@@ -1,0 +1,71 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-airflow:
+    name: lint + Airflow tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: scripts/setup.sh
+      - run: scripts/setup.sh airflow
+      - run: scripts/ci.sh lint
+      - run: scripts/ci.sh airflow
+
+  spark:
+    name: Spark tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: scripts/setup.sh
+      - uses: actions/cache@v4
+        with:
+          path: ~/.ivy2.5.2
+          key: ivy-delta-4.4.1
+      - run: scripts/setup.sh spark
+      - run: scripts/ci.sh spark
+
+  dbt:
+    name: dbt build on a fixture lake
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: scripts/setup.sh
+      - uses: actions/cache@v4
+        with:
+          path: ~/.ivy2.5.2
+          key: ivy-delta-4.4.1
+      - run: scripts/setup.sh spark
+      - run: scripts/setup.sh dbt
+      - run: scripts/ci.sh dbt

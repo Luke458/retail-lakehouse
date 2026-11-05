@@ -1,0 +1,30 @@
+name: deploy
+
+# On merge to main, after CI passes: package what a deployment needs (the
+# package wheel, DAGs, dbt project, verity config) as one versioned artifact.
+# Week 5 replaces the upload with a Databricks job and bundle deployment.
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: astral-sh/setup-uv@v6
+      - run: scripts/package.sh dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: retail-lakehouse-${{ github.event.workflow_run.head_sha }}
+          path: dist/
+          retention-days: 30

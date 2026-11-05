@@ -82,12 +82,12 @@ built and proven, not handed back.
 
 ### Week 4: CI/CD (local half)
 
-- [ ] 6. GitHub Actions workflows in `.github/workflows/`:
+- [x] 6. GitHub Actions workflows in `.github/workflows/`:
   - on PR: ruff, both pytest suites (Spark on JDK 21 via
     `actions/setup-java`), `dbt build` on a small fixture lake;
   - on merge to main: a deploy job (for now, build and upload an artifact).
   - Keep CI runtime reasonable: a tiny fixture, cached venvs.
-- [ ] 7. Run the workflow steps locally (the same commands, through a
+- [x] 7. Run the workflow steps locally (the same commands, through a
   `scripts/ci.sh` the workflow also calls) and show a deliberately broken
   change failing. Notes in `notes/week-04.md`, commit. The real
   "broken PR fails, valid PR merges" proof needs a GitHub repo (Questions).
@@ -154,3 +154,4 @@ built and proven, not handed back.
 - 2026-11-05: task 5, restate of approved week 2016-03-15 (`scripts/replay.sh 2016-03-15 restate`, new): verity **PASS** (v15→v16, NO_NEW_WEEK). History revised +2,058 units, and verity's materiality is 0.1% of the whole compared history (482,096 units over 107 weeks), so this 0.04%-of-a-week revision is immaterial. Gold rebuilt with the restated week: 5,123,421.015 = silver; three sales tables changed, the other two the same. No alert. Not tuned: a per-week materiality is the author's call in verity (Questions).
 - 2026-11-05: task 5, `missing-store` fault (new simulator fault: store 44, the largest, 5.6% of units, dropped from the drop) on new week 2016-04-19: verity **INVESTIGATE**, likely cause MISSING_STORES. "1 store absent, expected 302,515 (5.64%) vs limit 0.10%: material". Gold fingerprint unchanged, alert sent (15th email). Two fixes found on the way: `replay.sh` needed `--reprocess-behavior` for the gate's `depends_on_past` DAG, and the alert's findings now lead with materially missing entities (verity reports them as events, and the blocking finding names none). Now replaying 04-19 clean, then 04-26 and 05-03 (post-earthquake weeks, 16 Apr 2016).
 - 2026-11-05: task 5 done. Clean redelivery of 2016-04-19: INVESTIGATE (historical correction). 2016-04-26 and 05-03: INVESTIGATE (Manabí after the earthquake; school supplies, a family with no 2015 sales). 2016-05-10, 05-17, 05-24: PASS, and gold updated (103 weeks, equal to silver; the blocked weeks not served). Totals: clean-week false alarms 9/20 (45%; verity's own Favorita evaluation reports about 30/100), faults caught 1/2 (missing store yes, 0.04% restate no). Notes in `notes/week-03.md`, decisions updated.
+- 2026-11-05: Week 3 committed (`dccc202` on `week-03`). Tasks 6 and 7 done on `week-04`. `scripts/ci.sh all` exit 0 in 72 s. A new dbt test, `gold_units_match_silver`, passes on the real lake (103 weeks) and on the fixture, and `ci.sh` checks that fixture gold isn't empty. Three broken changes each fail their stage: gold excluding returns, `FAIL gold_units_match_silver`; `retries=0` on the gate, the DAG integrity test; an unused import, ruff F401. `package.sh` bundle checked. The workflows have not run on GitHub (Questions). Notes in `notes/week-04.md`.
