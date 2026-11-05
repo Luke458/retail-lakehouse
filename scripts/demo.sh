@@ -26,8 +26,17 @@ echo "== 1. drops"
 python -m retail_lakehouse.drops reference
 python -m retail_lakehouse.drops publish "$first" --count 30
 
-for dag in ingest_reference ingest_favorita transform_favorita publish_favorita; do
-  airflow dags unpause "$dag" >/dev/null 2>&1
+# On a fresh install the DAG processor may not have parsed the DAGs yet.
+dags=(ingest_reference ingest_favorita transform_favorita publish_favorita)
+for _ in $(seq 1 60); do
+  listed=$(airflow dags list -o plain 2>/dev/null | awk '{print $1}')
+  missing=$(for d in "${dags[@]}"; do grep -qx "$d" <<<"$listed" || echo "$d"; done)
+  [[ -z $missing ]] && break
+  sleep 5
+done
+[[ -z $missing ]] || { echo "DAGs not registered after 5 minutes: $missing" >&2; exit 1; }
+for dag in "${dags[@]}"; do
+  airflow dags unpause "$dag" >/dev/null 2>&1 || { echo "could not unpause $dag" >&2; exit 1; }
 done
 
 echo "== 2. ingest and transform"
