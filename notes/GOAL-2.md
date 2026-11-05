@@ -103,6 +103,6 @@ Each decision and its reason also goes in `notes/decisions.md` ("Close-out").
 ## Log
 
 - 2026-11-05: goal written. The first loop's questions answered above.
-- 2026-11-05: task 1 done. Decisions in `notes/decisions.md` (Close-out); `main` fast-forwarded to `841f838` (= `week-06`).
+- 2026-11-05: task 1 done. Decisions in `notes/decisions.md` (Close-out); `main` fast-forwarded to `3081df0` (= `week-06`).
 - 2026-11-05: task 2 done. Exactly 10 weeks blocked; for each, silver equals the source (rows and units). All released with that evidence, `decide` cleared, and 10/10 `build_gold` success. Gold serves 113/113 silver weeks; `gold_units_match_silver` PASS; table totals 517,167,114.857 vs .858 (float rounding over 113 sums).
 - 2026-11-05: task 3 done. Dry runs found 0 files at a retention of 0.5/1/3 h and 6,880 at 0 h (a Delta 4.4 quirk; runbook), so I used 0 h with no active task instances. Silver sales 38,926 MB to 683 MB, transactions 212 MB to 15 MB, in 28 s. Replaying 2016-05-24 is a no-op (silver v122 unchanged), reconcile passes, 58,896,896 rows over 113 weeks (= the pre-vacuum MERGE output).
