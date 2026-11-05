@@ -122,6 +122,7 @@ Undo with a clean `scripts/replay.sh W`.
   ```python
   from delta.tables import DeltaTable
   from retail_lakehouse.spark.common import spark_session, table_path
+
   spark = spark_session()
   DeltaTable.forPath(spark, table_path("silver", "sales")).vacuum()
   ```
