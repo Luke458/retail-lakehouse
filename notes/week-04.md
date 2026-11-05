@@ -4,9 +4,9 @@ From the career plan (Phase 1): GitHub Actions on every PR (lint, tests,
 `dbt build` on a fixture), a deploy job on merge to main.
 
 **Done when:** a broken PR fails and a valid one merges. **Done
-2026-11-05**, locally and on GitHub. The same commands the workflows run pass locally, and three
-deliberately broken changes each fail at the right stage. Running it on
-GitHub waits on the repo question in `GOAL.md`.
+2026-11-05.** Locally, three deliberately broken changes each fail at the
+right stage. On GitHub, a PR that broke gold failed CI and a valid PR
+merged (see "Proof on GitHub").
 
 ## What's built
 
