@@ -367,3 +367,29 @@ alone.
   still has to run on a schedule (a weekly maintenance task after the 7-day
   retention), and the tables want OPTIMIZE once partitions hold many small
   files.
+
+## Close-out: the author's questions, answered (2026-11-05)
+
+The author asked me to decide these. The reasons are in `notes/GOAL-2.md`.
+In short:
+
+- **`main`** fast-forwards to the last week's branch. The history is a
+  straight line of green commits, and a `main` stuck at Week 1
+  misrepresents the project.
+- **GitHub**: a private repo first. CI needs a real repository for its
+  proof. Going public is the author's later call, after reading it.
+- **Azure**: no cloud run. There's no subscription, and spending money
+  is out of bounds. Week 5 stays code-only, and that is the one open item
+  of Phase 1.
+- **verity materiality**: unchanged. Small vendor restatements are normal;
+  the decision record shows them; and tuning verity on the weeks it was
+  measured on would only flatter the numbers.
+- **False alarms**: released, one at a time, each after checking silver
+  against the source, with that evidence as the reason. verity's status
+  stays on record, and the 45% stands as measured.
+- **Silver's history**: vacuumed. Nothing reads it, it was the pre-fix
+  MERGE's whole-table copies, and raw can rebuild it. The gate table keeps
+  its history, because verity's stored assessments name its versions.
+- **Podman**: out of this project's hands. Run from Claude's sandboxed
+  shell, podman can't see the real pause process, deletes its pid files,
+  and breaks the author's containers' management. So no container work.

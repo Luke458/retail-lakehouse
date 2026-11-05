@@ -122,26 +122,8 @@ built and proven, not handed back.
 
 ## Questions for the author
 
-- Merge `week-02` (and later branches) into `main`?
-- Week 4: create a GitHub repo (name, public or private) and push, so CI
-  runs for real?
-- Week 5: Azure subscription and budget for one cloud run, then
-  `terraform destroy`?
-- verity materiality: history revisions are material above 0.1% of the
-  whole compared history (`materiality_ratio`), so at 107 weeks a single
-  week must move by about 9% before verity reviews it. The simulator's
-  restate (0.04% of a week) passes. Should the gate use a per-week ratio,
-  a shorter window, or is this intended? (Not tuned here.)
-- Nine clean weeks are quarantined (false alarms, reasons in
-  `notes/week-03.md`), plus 2016-04-19's clean redelivery. Release them
-  (`docs/runbook.md`, "A week is quarantined") or leave them as the record
-  of the gate's false alarms?
-- Disk: silver's old file versions take about 38 GB (the pre-fix MERGE
-  rewrote the table every week; the live table is 0.7 GB). VACUUM with the
-  default 7-day retention after 2026-11-12, or sooner with a shorter
-  retention (irreversible, and no time travel before that)?
-- Podman: still broken (see `notes/week-01.md`). Fixing it restarts your
-  containers.
+Answered on 2026-11-05 at the author's request ("answer the rest of the
+questions on ur own"). See `notes/GOAL-2.md`.
 
 ## Log
 
