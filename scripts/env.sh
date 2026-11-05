@@ -5,13 +5,16 @@ export AIRFLOW__CORE__DAGS_FOLDER="$REPO/dags"
 export AIRFLOW__CORE__LOAD_EXAMPLES=False
 export AIRFLOW__CORE__EXECUTOR=LocalExecutor
 export AIRFLOW__API__HOST=127.0.0.1
-export AIRFLOW__API__PORT=8088            # 8080 is taken on this machine
-export AIRFLOW__API__BASE_URL=http://localhost:8088
+# Ports can be moved to run a second copy beside this one (AIRFLOW_PORT, MAIL_PORT).
+export AIRFLOW__API__PORT="${AIRFLOW_PORT:-8088}"  # 8080 is taken on this machine
+export AIRFLOW__API__BASE_URL="http://localhost:$AIRFLOW__API__PORT"
+export MAIL_PORT="${MAIL_PORT:-1025}"
 export AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL=10
 # Alerts go to a local SMTP catcher (scripts/mail.sh), saved as files in data/mail.
-export AIRFLOW_CONN_SMTP_DEFAULT='smtp://localhost:1025?disable_ssl=true&disable_tls=true&from_email=airflow%40localhost'
+export AIRFLOW_CONN_SMTP_DEFAULT="smtp://localhost:$MAIL_PORT?disable_ssl=true&disable_tls=true&from_email=airflow%40localhost"
 export LAKE_ROOT="$REPO/data"
-export FAVORITA_SOURCE="${FAVORITA_SOURCE:-$HOME/Projects/retail-qc/data/real/favorita}"
+# The Favorita parquet files (scripts/get-data.sh downloads and verifies them).
+export FAVORITA_SOURCE="${FAVORITA_SOURCE:-$REPO/data/source/favorita}"
 export PATH="$REPO/.venv/bin:$PATH"
 # Spark runs in its own venv (delta-spark's pins conflict with Airflow's constraints)
 # on JDK 21 (Spark 4.2 does not run on the system's Java 27).

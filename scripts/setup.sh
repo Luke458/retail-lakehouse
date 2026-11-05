@@ -4,6 +4,7 @@
 #   .venv-spark  Spark 4.2 + Delta 4.4 + DuckDB (bronze, silver, reconcile)
 #   .venv-dbt    dbt-duckdb (gold)
 #   .venv-qc     verity, pinned to a commit (the gate)
+# DuckDB is pinned to one version in the three venvs that use it: they share the gold file.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PY=3.12
@@ -21,17 +22,17 @@ if want airflow; then
 fi
 if want spark; then
   uv venv --python "$PY" .venv-spark
-  uv pip install --python .venv-spark/bin/python "pyspark==4.2.0" "delta-spark==4.4.1" duckdb pyarrow \
+  uv pip install --python .venv-spark/bin/python "pyspark==4.2.0" "delta-spark==4.4.1" "duckdb==2.0.0" pyarrow \
     "pandas<3" pytest ruff
   uv pip install --python .venv-spark/bin/python --no-deps -e .
 fi
 if want dbt; then
   uv venv --python "$PY" .venv-dbt
-  uv pip install --python .venv-dbt/bin/python "dbt-duckdb==1.11.1" "dbt-core==1.12.6"
+  uv pip install --python .venv-dbt/bin/python "dbt-duckdb==1.11.1" "dbt-core==1.12.6" "duckdb==2.0.0"
   uv pip install --python .venv-dbt/bin/python --no-deps -e .
 fi
 if want qc; then
   uv venv --python "$PY" .venv-qc
-  uv pip install --python .venv-qc/bin/python "verity[delta] @ ${VERITY}" duckdb
+  uv pip install --python .venv-qc/bin/python "verity[delta] @ ${VERITY}" "duckdb==2.0.0"
   uv pip install --python .venv-qc/bin/python --no-deps -e .
 fi
