@@ -93,7 +93,7 @@ Each decision and its reason also goes in `notes/decisions.md` ("Close-out").
   - the deploy workflow runs on `main` and uploads the bundle.
 
   Record the run URLs and timings in `notes/week-04.md`.
-- [ ] 6. Week 7 preparation, without writing the CV:
+- [x] 6. Week 7 preparation, without writing the CV:
   - run career-ops `node upskill.mjs` and record what it says the project
     now covers;
   - write `notes/evidence.md`: every claim the project supports, each with
@@ -106,3 +106,5 @@ Each decision and its reason also goes in `notes/decisions.md` ("Close-out").
 - 2026-11-05: task 1 done. Decisions in `notes/decisions.md` (Close-out); `main` fast-forwarded to `3081df0` (= `week-06`).
 - 2026-11-05: task 2 done. Exactly 10 weeks blocked; for each, silver equals the source (rows and units). All released with that evidence, `decide` cleared, and 10/10 `build_gold` success. Gold serves 113/113 silver weeks; `gold_units_match_silver` PASS; table totals 517,167,114.857 vs .858 (float rounding over 113 sums).
 - 2026-11-05: task 3 done. Dry runs found 0 files at a retention of 0.5/1/3 h and 6,880 at 0 h (a Delta 4.4 quirk; runbook), so I used 0 h with no active task instances. Silver sales 38,926 MB to 683 MB, transactions 212 MB to 15 MB, in 28 s. Replaying 2016-05-24 is a no-op (silver v122 unchanged), reconcile passes, 58,896,896 rows over 113 weeks (= the pre-vacuum MERGE output).
+- 2026-11-05: task 6 done. `node upskill.mjs` (40 reports): the top gaps are CI/CD, AWS, Terraform, Kafka, dbt and Scala. The project covers CI/CD, Terraform (OpenTofu) and dbt; AWS, Kafka and Scala remain. `notes/evidence.md`: 18 claims with proof links, an authorship statement (Claude wrote the code and notes at the author's direction), and what it doesn't show yet. Career-plan line updated.
+- 2026-11-05: tasks 4-5 blocked: the permission system denied `gh repo create` (classified as a data-sharing upload). Not worked around. The author's command is in the final summary. Loop stopped.
