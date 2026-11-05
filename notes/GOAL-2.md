@@ -69,9 +69,9 @@ Each decision and its reason also goes in `notes/decisions.md` ("Close-out").
 
 ## Tasks
 
-- [ ] 1. Record these answers in `notes/decisions.md` ("Close-out"), and
+- [x] 1. Record these answers in `notes/decisions.md` ("Close-out"), and
   fast-forward `main` to `week-06`.
-- [ ] 2. Release the falsely blocked weeks. For each blocked clean week
+- [x] 2. Release the falsely blocked weeks. For each blocked clean week
   (the 9 in `notes/week-03.md`, plus 2016-04-19's clean redelivery):
   - check silver against the Favorita source (rows and units);
   - release it, with that evidence as the reason;
@@ -79,7 +79,7 @@ Each decision and its reason also goes in `notes/decisions.md` ("Close-out").
 
   Then check that gold serves every week in silver and equals silver
   (`gold_units_match_silver`).
-- [ ] 3. VACUUM silver (sales, transactions) with Airflow idle, a 1-hour
+- [x] 3. VACUUM silver (sales, transactions) with Airflow idle, a 1-hour
   retention, and the duration check disabled for that call only. Record the
   disk use before and after, and check that silver still reads and
   reconciles (a rerun of one week is a no-op).
@@ -103,3 +103,6 @@ Each decision and its reason also goes in `notes/decisions.md` ("Close-out").
 ## Log
 
 - 2026-11-05: goal written. The first loop's questions answered above.
+- 2026-11-05: task 1 done. Decisions in `notes/decisions.md` (Close-out); `main` fast-forwarded to `841f838` (= `week-06`).
+- 2026-11-05: task 2 done. Exactly 10 weeks blocked; for each, silver equals the source (rows and units). All released with that evidence, `decide` cleared, and 10/10 `build_gold` success. Gold serves 113/113 silver weeks; `gold_units_match_silver` PASS; table totals 517,167,114.857 vs .858 (float rounding over 113 sums).
+- 2026-11-05: task 3 done. Dry runs found 0 files at a retention of 0.5/1/3 h and 6,880 at 0 h (a Delta 4.4 quirk; runbook), so I used 0 h with no active task instances. Silver sales 38,926 MB to 683 MB, transactions 212 MB to 15 MB, in 28 s. Replaying 2016-05-24 is a no-op (silver v122 unchanged), reconcile passes, 58,896,896 rows over 113 weeks (= the pre-vacuum MERGE output).

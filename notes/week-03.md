@@ -85,6 +85,14 @@ None of the blocked weeks was released. Release is a person's decision
 (`python -m retail_lakehouse.gate release --week W --by NAME --reason ...`,
 then clear `decide`), and it is listed in `GOAL.md` under Questions.
 
+**Follow-up 2026-11-05 (`notes/GOAL-2.md`):** at the author's request I
+decided this myself and released all 10 blocked clean weeks: the 9 above
+plus 2016-04-19's clean redelivery. Each one was released only after
+checking that silver equals the Favorita source in rows and units, and that
+evidence is the recorded reason. verity's status stays on each decision,
+and the false-alarm rate above is unchanged. Gold now serves all 113 silver
+weeks (`gold_units_match_silver` PASS).
+
 Reproduce a fault:
 
 ```bash

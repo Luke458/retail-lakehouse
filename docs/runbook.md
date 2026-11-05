@@ -127,6 +127,12 @@ Undo with a clean `scripts/replay.sh W`.
   DeltaTable.forPath(spark, table_path("silver", "sales")).vacuum()
   ```
 
+  Observed with Delta 4.4 here: `VACUUM ... RETAIN <n> HOURS DRY RUN`
+  found 0 files for every n > 0, even hours after the last commit, while
+  `RETAIN 0 HOURS` listed them. To reclaim space now, run `vacuum(0)`, with
+  `spark.databricks.delta.retentionDurationCheck.enabled=false`, only
+  while Airflow is idle (nothing may be reading or writing the table). That
+  is how silver went from 38.9 GB to 0.7 GB on 2026-11-05.
 - **Gold rebuild.** `"$DBT" build --full-refresh` rebuilds gold from approved
   weeks only. A week whose latest decision blocks it is dropped from gold, not
   frozen at an earlier version.
