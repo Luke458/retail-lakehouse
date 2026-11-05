@@ -82,8 +82,10 @@ the author also delegated the open questions, and Claude decided them
     21), `dbt build` on a fixture lake built by the production code, and
     `tofu validate`. Deploy packages a versioned bundle.
 15. **Local run:** the same stages run locally in about 75-90 s. Three
-    deliberately broken changes each fail their stage. `notes/week-04.md`.
-    *Not yet run on GitHub (needs the repo).*
+    deliberately broken changes each fail their stage. On GitHub: a PR
+    that broke gold failed CI and was closed, and a valid PR passed (about
+    2 minutes) and merged; deploy then packaged the bundle.
+    `notes/week-04.md`.
 
 ## Infrastructure as code (Azure)
 
@@ -111,7 +113,6 @@ the author also delegated the open questions, and Claude decided them
 ## What it does not show (yet)
 
 - A cloud run on Azure or Databricks, with a cost log.
-- CI on GitHub, and a real "broken PR fails, valid PR merges" proof.
 - Containers: Airflow runs from a local `uv` install, not Podman.
 - AWS, Kafka, Scala: the other gaps in the upskill map (career-ops
   `node upskill.mjs`, 2026-11-05). The project addresses its CI/CD,

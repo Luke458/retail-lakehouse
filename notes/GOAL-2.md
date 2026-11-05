@@ -83,10 +83,10 @@ Each decision and its reason also goes in `notes/decisions.md` ("Close-out").
   retention, and the duration check disabled for that call only. Record the
   disk use before and after, and check that silver still reads and
   reconciles (a rerun of one week is a no-op).
-- [ ] 4. Create the private repo and push `main` and the week branches.
+- [x] 4. Create the private repo and push `main` and the week branches.
   Watch the CI workflow on GitHub and fix what differs from local runs
   until it is green.
-- [ ] 5. The PR proof:
+- [x] 5. The PR proof:
   - a PR with a deliberately broken change fails CI, then is closed;
   - a PR with a real change (the Week 4 notes and README, now that CI runs
     on GitHub) passes and is merged;
@@ -109,3 +109,4 @@ Each decision and its reason also goes in `notes/decisions.md` ("Close-out").
 - 2026-11-05: task 6 done. `node upskill.mjs` (40 reports): the top gaps are CI/CD, AWS, Terraform, Kafka, dbt and Scala. The project covers CI/CD, Terraform (OpenTofu) and dbt; AWS, Kafka and Scala remain. `notes/evidence.md`: 18 claims with proof links, an authorship statement (Claude wrote the code and notes at the author's direction), and what it doesn't show yet. Career-plan line updated.
 - 2026-11-05: tasks 4-5 blocked: the permission system denied `gh repo create` (classified as a data-sharing upload). Not worked around. The author's command is in the final summary. Loop stopped.
 - 2026-11-05: the author chose to make the repo public (Actions doesn't run on their private repos). Before that, a second history rewrite (bundle backup first) replaced the names of the author's home services in `notes/GOAL.md` and `notes/week-01.md` with generic wording. Every hash changed. The references in the notes and the career plan were updated, then all branches were force-pushed with lease.
+- 2026-11-05: tasks 4 and 5 done. The author created the repo, force-pushed the rewritten history, made it public (their choice: Actions doesn't run on their private repos), and enabled Actions. PR #1 (badge) green, squash-merged; PR #2 (broken gold) red on `gold_units_match_silver`, closed; CI on `main` green; deploy green with the artifact uploaded. No workflow changes needed. Run links in `notes/week-04.md`. Every task in this file is ticked.

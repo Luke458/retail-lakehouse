@@ -3,8 +3,8 @@
 From the career plan (Phase 1): GitHub Actions on every PR (lint, tests,
 `dbt build` on a fixture), a deploy job on merge to main.
 
-**Done when:** a broken PR fails and a valid one merges. **Local half done
-2026-11-05.** The same commands the workflows run pass locally, and three
+**Done when:** a broken PR fails and a valid one merges. **Done
+2026-11-05**, locally and on GitHub. The same commands the workflows run pass locally, and three
 deliberately broken changes each fail at the right stage. Running it on
 GitHub waits on the repo question in `GOAL.md`.
 
@@ -48,10 +48,21 @@ GitHub waits on the repo question in `GOAL.md`.
 Logs of the three failures: `data/reports/proofs/ci/broken-*.log`. Each
 change was reverted from git afterwards.
 
-**Not proven yet:** the workflows themselves have not run on GitHub, so
-runner details (uv cache keys, the ivy cache path, the Java setup) are
-untested there. That needs a repository (Questions in `GOAL.md`), then a PR
-with one of the broken changes above and one without.
+## Proof on GitHub (2026-11-05)
+
+The repo is public at https://github.com/Luke458/retail-lakehouse. Actions had to be enabled on the account first;
+until then no event started a run.
+
+| Check | Result |
+|---|---|
+| [PR #1](https://github.com/Luke458/retail-lakehouse/pull/1), a real change (CI badge) | [run](https://github.com/Luke458/retail-lakehouse/actions/runs/41973417222) **success**: lint + Airflow tests 16 s, OpenTofu 12 s, dbt on the fixture lake 1 min 39 s, Spark tests 1 min 58 s (jobs in parallel). Squash-merged as `e3ff858` |
+| [PR #2](https://github.com/Luke458/retail-lakehouse/pull/2), the broken gold filter (`and not s.is_return`) | [run](https://github.com/Luke458/retail-lakehouse/actions/runs/41973417513) **failure**: the dbt job, `FAIL 2 gold_units_match_silver`; the other three jobs passed. Closed unmerged |
+| CI on `main` after the merge | [run](https://github.com/Luke458/retail-lakehouse/actions/runs/41973761991) success, 2 min 21 s |
+| Deploy (`workflow_run` after CI on `main`) | [run](https://github.com/Luke458/retail-lakehouse/actions/runs/41974010677) success, 12 s. Artifact `retail-lakehouse-e3ff858f…`, 39,902 bytes (wheel, bundle, manifest), kept 30 days |
+
+Both PRs passed or failed on GitHub's runners exactly as they do locally,
+with no workflow changes: uv caching, Temurin 21 and the Delta jars all
+worked on the first run.
 
 ## Next: Week 5 (30 Nov)
 
