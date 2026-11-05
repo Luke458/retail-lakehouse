@@ -11,4 +11,5 @@ select
 from {{ ref("stg_sales") }} s
 join {{ ref("stg_items") }} i using (item_nbr)
 where {{ week_filter("s.week_ending") }}
+  and not s.is_return  -- "exclude returns from units"
 group by all
