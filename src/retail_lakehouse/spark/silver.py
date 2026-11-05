@@ -92,13 +92,33 @@ def merge_week(spark, feed: str, week: date, run_id: str) -> dict[str, Any]:
         source.limit(0).write.format("delta").partitionBy("week_ending").save(path)
     target = DeltaTable.forPath(spark, path)
     before = target.history(1).select("version").first()[0]
+    # Rows the vendor stopped sending are deleted. Not with WHEN NOT MATCHED BY
+    # SOURCE: that clause makes every target row a candidate, so Delta rewrites
+    # every file of every week. Instead the week's vanished keys come in as
+    # tombstones, and the only target predicate is the week in ON, which prunes
+    # the MERGE to that partition. Still one atomic commit.
+    gone = (
+        spark.read.format("delta")
+        .load(path)
+        .where(f"week_ending = '{week}'")
+        .select(*keys)
+        .join(source.select(*keys), keys, "left_anti")
+    )
+    tombstones = gone.select(
+        *keys,
+        *[F.lit(None).cast(f.dataType).alias(f.name) for f in source.schema if f.name not in keys],
+    )
+    changes = source.withColumn("_delete", F.lit(False)).unionByName(
+        tombstones.withColumn("_delete", F.lit(True))
+    )
+    columns = {c: f"s.{c}" for c in source.columns}
     on = " AND ".join([f"t.week_ending = '{week}'", *[f"t.{k} = s.{k}" for k in keys]])
     (
         target.alias("t")
-        .merge(source.alias("s"), on)
-        .whenMatchedUpdateAll(condition="t.row_hash <> s.row_hash")
-        .whenNotMatchedInsertAll()
-        .whenNotMatchedBySourceDelete(condition=f"t.week_ending = '{week}'")
+        .merge(changes.alias("s"), on)
+        .whenMatchedDelete(condition="s._delete")
+        .whenMatchedUpdate(condition="t.row_hash <> s.row_hash", set=columns)
+        .whenNotMatchedInsert(condition="NOT s._delete", values=columns)
         .execute()
     )
     last = target.history(1).select("version", "operationMetrics").first()

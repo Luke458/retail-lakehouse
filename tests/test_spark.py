@@ -153,3 +153,34 @@ def test_rows_the_vendor_stops_sending_are_deleted_from_that_week_only(spark, la
     _, merged, report = run(spark)
     assert (merged["inserted"], merged["updated"], merged["deleted"]) == (0, 0, 10)
     assert all(report["checks"].values())
+
+
+def test_merging_a_week_rewrites_only_that_weeks_files(spark, lake):
+    # Two weeks in silver, then the first week redelivered with 10 rows fewer.
+    source = lake.parent / "source/train.parquet"
+    first = pq.read_table(source)
+    days = first.column("date").to_pylist()
+    second = first.set_column(1, "date", pa.array([f"2016-01-{int(d[-2:]) + 7:02d}" for d in days]))
+    second = second.set_column(0, "id", pa.array([i + N for i in range(N)]))
+    pq.write_table(pa.concat_tables([first, second]), source)
+    for week in (WEEK, date(2016, 1, 19)):
+        drops.publish_week(week)
+        for feed in landing.WEEKLY_FEEDS:
+            landing.land(landing.drop_path("inbox", feed, week), landing.drop_path("raw", feed, week), "test")
+        bronze.load_week(spark, "sales", week, "test")
+        silver.merge_week(spark, "sales", week, "test")
+
+    def files(week):
+        return set(
+            spark.read.format("delta")
+            .load(table_path("silver", "sales"))
+            .where(f"week_ending = '{week}'")
+            .inputFiles()
+        )
+
+    other = files("2016-01-19")
+    pq.write_table(pa.concat_tables([first.slice(0, N - 10), second]), source)
+    deliver(force=True)
+    loaded, merged, _ = run(spark)
+    assert merged["deleted"] == 10
+    assert files("2016-01-19") == other  # the other week's files were not rewritten
