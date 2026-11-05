@@ -115,7 +115,7 @@ built and proven, not handed back.
   rotate a fault. A stranger must be able to run it from a fresh clone:
   prove that with a clean clone into the scratchpad and the README steps
   only. Commit.
-- [ ] 11. Update the career-plan status line (career-ops
+- [x] 11. Update the career-plan status line (career-ops
   `data/career-plan-2026-10-27.md`, Phase 1). Write the author a summary:
   what's proven, and what waits on them. Then stop the loop. The walkthrough
   video and CV v2 (Week 7) are the author's.
@@ -132,9 +132,14 @@ built and proven, not handed back.
   week must move by about 9% before verity reviews it. The simulator's
   restate (0.04% of a week) passes. Should the gate use a per-week ratio,
   a shorter window, or is this intended? (Not tuned here.)
-- Seven clean 2016 weeks are quarantined (false alarms, reasons in
-  `notes/week-03.md`). Release them (`python -m retail_lakehouse.gate release`)
-  or leave them as the record of the gate's false alarms?
+- Nine clean weeks are quarantined (false alarms, reasons in
+  `notes/week-03.md`), plus 2016-04-19's clean redelivery. Release them
+  (`docs/runbook.md`, "A week is quarantined") or leave them as the record
+  of the gate's false alarms?
+- Disk: silver's old file versions take about 38 GB (the pre-fix MERGE
+  rewrote the table every week; the live table is 0.7 GB). VACUUM with the
+  default 7-day retention after 2026-11-12, or sooner with a shorter
+  retention (irreversible, and no time travel before that)?
 - Podman: still broken (see `notes/week-01.md`). Fixing it restarts your
   containers.
 
@@ -159,3 +164,4 @@ built and proven, not handed back.
 - 2026-11-05: task 10 in progress on `week-06`. While writing the README I found silver's MERGE rewrote the whole table every week: `WHEN NOT MATCHED BY SOURCE` disables partition pruning. That is why silver took 39 GB with a 0.7 GB live table. Fixed with tombstones: a new test reproduces it, and all 8 Spark tests pass. Real lake, 2016-03-15 redelivered clean: 1 file instead of 112, 659,753 rows copied instead of 58,231,949, 5.7 s instead of 67 s, 2,587 rows reverted (Week 2's restate count). Gate PASS, gold back to 5,121,362.755. Old versions not vacuumed (author's call, runbook). README, runbook, `get-data.sh` (pinned sha256s; the Hugging Face copy of the Kaggle data) and `demo.sh` written. DuckDB pinned to 2.0.0 in all three venvs. Ports configurable. Next: the fresh-clone run.
 - 2026-11-05: fresh-clone run in the scratchpad (main Airflow and mail stopped, so the clone used the default ports). README steps only. `setup.sh` 7 s (uv cache), with verity installed from github.com/Luke458/verity at `6526a44`. `get-data.sh` downloaded 862 MB in 21 s, and all five sha256s matched. `ci.sh all` first failed: ruff formats the runbook's Python block, and I had written the runbook after the last CI run, so main failed too. Fixed (`bd0a276`), then exit 0 in 93 s. `demo.sh` now waits for DAG registration before unpausing (`04776da`). Demo running.
 - 2026-11-05: task 10 done. Fresh clone, README steps only: setup, data (862 MB, sha256 ok), CI (exit 0, 93 s after the runbook-format fix), Airflow, `demo.sh` (after the gold-folder fix: 30 weeks, 4 gated, PASS ×4, gold 30 weeks). Runbook quarantine procedure on the clone's demo data: a served week redelivered without store 44 was quarantined (revision −295,512, material); gold kept the last approved version (5,121,362.755, 53 stores) while silver held the bad one; release plus clearing `decide` rebuilt gold = silver. Alerts now state the size of material revisions. Main Airflow and mail restarted. Notes in `notes/week-06.md`.
+- 2026-11-05: task 11 done. Career-plan status line added (career-ops `data/career-plan-2026-10-27.md`, Phase 1, uncommitted there). It says Claude wrote the code and notes. Every task is ticked, and what remains needs the author (Questions). Loop stopped.
