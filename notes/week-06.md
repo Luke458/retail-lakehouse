@@ -64,9 +64,9 @@ README's commands, in order:
 |---|---|
 | `scripts/setup.sh` | exit 0, 7 s (uv cache warm); verity installed from github.com/Luke458/verity at `6526a44` |
 | `scripts/get-data.sh` | 862 MB downloaded in 21 s; all five sha256s match |
-| `scripts/ci.sh all` | first run failed (runbook formatting, fixed in `557ddc0`); then exit 0 in 93 s: lint, 29 + 8 tests, dbt 33/33, infra valid |
+| `scripts/ci.sh all` | first run failed (runbook formatting, fixed in `e11717f`); then exit 0 in 93 s: lint, 29 + 8 tests, dbt 33/33, infra valid |
 | `scripts/mail.sh &`, `scripts/airflow.sh &` | healthy; the admin password file written on first start |
-| `scripts/demo.sh` | first run stopped at the first gold build (no `gold/` folder, fixed in `e1e5bc8`). Rerun: exit 0, finished chunks skipped. Ingest and transform of 30 weeks about 28 min, gate bootstrap 26 weeks (3,107,058 rows), then 4 weeks gated: **PASS ×4, gold serves 30 weeks** |
+| `scripts/demo.sh` | first run stopped at the first gold build (no `gold/` folder, fixed in `efe015a`). Rerun: exit 0, finished chunks skipped. Ingest and transform of 30 weeks about 28 min, gate bootstrap 26 weeks (3,107,058 rows), then 4 weeks gated: **PASS ×4, gold serves 30 weeks** |
 
 The runbook's quarantine procedure, on the clone's demo data:
 
