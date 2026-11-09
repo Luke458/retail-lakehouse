@@ -2,7 +2,8 @@
 
 Source material for the author's CV v2 and interviews. Not CV text. Each
 line is a claim the repository supports, with where the proof is. Numbers
-are from real runs on 2026-11-04 and 2026-11-05.
+are from real runs on 2026-11-04, 2026-11-05 and (the cloud run)
+2026-11-09.
 
 ## Authorship (read first)
 
@@ -97,11 +98,14 @@ the author also delegated the open questions, and Claude decided them
     - Unity Catalog credential, external locations and volume;
     - the transform job.
 
-    `tofu validate` passes. *Not applied; no cloud run.*
+    Applied once (16 resources) and destroyed on 2026-11-09.
     `infra/`, `notes/week-05.md`.
 17. **Same commands on Databricks:** the Spark jobs take their table and
     file roots from config (`abfss://` and a UC volume), so the same
-    commands run there. Proven locally only. `notes/week-05.md`.
+    commands run there. On Databricks (runtime 18 LTS), one week ran
+    bronze → silver → reconcile and matched the local run row for row
+    (664,947 sales, 371 transactions). Cost under $1 (estimate).
+    `notes/week-05.md`.
 
 ## Packaging
 
@@ -112,7 +116,8 @@ the author also delegated the open questions, and Claude decided them
 
 ## What it does not show (yet)
 
-- A cloud run on Azure or Databricks, with a cost log.
+- A scheduled cloud deployment: the cloud run was one week, triggered by
+  hand, with Airflow, dbt and the gate still local.
 - Containers: Airflow runs from a local `uv` install, not Podman.
 - AWS, Kafka, Scala: the other gaps in the upskill map (career-ops
   `node upskill.mjs`, 2026-11-05). The project addresses its CI/CD,
