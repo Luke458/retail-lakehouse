@@ -47,13 +47,19 @@ variable "databricks_sku" {
 variable "node_type" {
   description = "VM size of the job cluster's single node."
   type        = string
-  default     = "Standard_D4ds_v5"
+  default     = "Standard_D4ds_v6" # v5 had no quota and v4 no capacity on a new subscription (week-05.md)
 }
 
 variable "wheel_version" {
   description = "Version of the retail_lakehouse wheel uploaded to the artifacts volume by the deploy workflow."
   type        = string
   default     = "0.1.0"
+}
+
+variable "grant_deployer_data_access" {
+  description = "Give the identity running tofu Storage Blob Data Contributor on the lake (to upload drops and the wheel)."
+  type        = bool
+  default     = true
 }
 
 variable "alert_email" {

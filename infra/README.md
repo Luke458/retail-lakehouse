@@ -1,8 +1,8 @@
 # infra: Azure and Databricks for the lakehouse (OpenTofu)
 
-Code only so far: `tofu validate` passes, and nothing has been planned
-against a subscription or applied. The cloud run waits on a subscription and
-a budget (Questions in `notes/GOAL.md`).
+Applied once on 2026-11-09: plan, apply, one week through the Databricks
+job, `tofu destroy`. Results, problems and cost are in
+`notes/week-05.md`.
 
 | File | What |
 |---|---|
@@ -24,20 +24,44 @@ cd infra
 tofu init
 tofu fmt -check && tofu validate
 
-# With a subscription (not done yet):
+# With a subscription (as run on 2026-11-09):
 az login
-tofu plan -var subscription_id=... -out plan.bin
-tofu apply -target=azurerm_databricks_workspace.this   # first time: the Databricks provider needs the workspace
-tofu apply plan.bin
-# upload the wheel (scripts/package.sh) to <files_root>/artifacts/, then
-# trigger the job with the parameter week=2016-01-05
-tofu destroy
+tofu apply -target=azurerm_databricks_workspace.this -target=azurerm_role_assignment.connector_lake \
+  -target=azurerm_role_assignment.deployer_lake -target=azurerm_storage_container.lake \
+  -target=azurerm_storage_management_policy.lake -var subscription_id=...   # the Databricks provider needs the workspace first
+# open the workspace once from the portal (Launch Workspace): see "First apply" below
+tofu apply -var subscription_id=...
+# upload one week's raw drops and the wheel (no account keys: --auth-mode login)
+az storage blob upload-batch --auth-mode login --account-name <storage_account> -d files \
+  --destination-path raw/favorita/sales/week_ending=2016-05-24 -s ../data/raw/favorita/sales/week_ending=2016-05-24
+az storage blob upload --auth-mode login --account-name <storage_account> -c files \
+  -n artifacts/retail_lakehouse-0.1.0-py3-none-any.whl -f ../dist/retail_lakehouse-0.1.0-py3-none-any.whl
+# run the job (Jobs API run-now, job_parameters {"week": "2016-05-24"}), then
+tofu destroy -var subscription_id=...
 ```
+
+## First apply on a new subscription
+
+What got in the way on 2026-11-09, in order:
+
+- **Resource providers** (`Microsoft.Databricks`, `.Compute`, `.Network`,
+  `.Storage`, `.ManagedIdentity`) were unregistered: `az provider register`.
+- **VM size:** the DDSv5 family had 0 vCPU quota, and `Standard_D4ds_v4`
+  had quota but no capacity (`SkuNotAvailable`, so the cluster never
+  started). `az vm list-usage` and `az vm list-skus` against
+  `/api/2.1/clusters/list-node-types` found sizes with both; the default
+  is now `Standard_D4ds_v6`.
+- **A personal Microsoft account** (gmail): the workspace API answered
+  "Did not find workspace with specified org ID" until the workspace was
+  opened once from the portal, and opening its URL directly signed in to the
+  wrong tenant. Launching it from the portal fixed both.
+- **Uploads:** account keys are off, so the person running tofu gets
+  Storage Blob Data Contributor (`grant_deployer_data_access`).
 
 ## Cost note
 
-Estimates to check against the Azure pricing calculator before applying.
-They are not measured.
+Written before the run, as estimates. The measured run is in
+`notes/week-05.md`.
 
 - **Storage:** the Favorita lake is a few GB (raw, bronze, silver, gold), so
   pennies a month on LRS hot, less once old drops tier to cool.

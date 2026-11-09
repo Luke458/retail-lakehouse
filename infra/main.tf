@@ -92,3 +92,14 @@ resource "azurerm_role_assignment" "connector_lake" {
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = azurerm_databricks_access_connector.lake.identity[0].principal_id
 }
+
+# Account keys are off, so whoever uploads drops and the wheel (the person
+# running tofu in dev; the deploy identity in CI) needs a data role too.
+data "azurerm_client_config" "current" {}
+
+resource "azurerm_role_assignment" "deployer_lake" {
+  count                = var.grant_deployer_data_access ? 1 : 0
+  scope                = azurerm_storage_account.lake.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = data.azurerm_client_config.current.object_id
+}

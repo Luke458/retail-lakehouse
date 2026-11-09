@@ -82,8 +82,9 @@ Measured on the real data, with the numbers and the reasoning in `notes/`:
   PR passed and merged, and the deploy workflow packaged the bundle.
   `scripts/ci.sh` runs the same stages locally. (`week-04.md`)
 - **Week 5, Azure:** OpenTofu for ADLS Gen2 and Databricks, plus the job;
-  `tofu validate` passes; the Spark jobs take their paths from config.
-  Code only: nothing applied. (`week-05.md`)
+  the Spark jobs take their paths from config. Applied once: one week ran
+  bronze → silver → reconcile on Databricks and matched the local run
+  row for row, then `tofu destroy`. (`week-05.md`)
 - **Week 6:** this README, the runbook, a fresh-clone run, and a fix for
   silver's MERGE, which had been rewriting the whole table every week.
   (`week-06.md`)
