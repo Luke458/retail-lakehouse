@@ -21,6 +21,11 @@ export PATH="$REPO/.venv/bin:$PATH"
 # In GitHub Actions, actions/setup-java exports JAVA_HOME_21_X64.
 export JAVA_HOME="${LAKEHOUSE_JAVA_HOME:-${JAVA_HOME_21_X64:-$HOME/.local/opt/jdk-21.0.13+9}}"
 export SPARK_PYTHON="$REPO/.venv-spark/bin/python"
+# Spark starts its Python workers with `python3` from PATH unless told otherwise; on a
+# machine whose default python3 is another minor version (GitHub's runners moved to 3.14)
+# they refuse to run. Pin driver and workers to the Spark venv.
+export PYSPARK_PYTHON="$SPARK_PYTHON"
+export PYSPARK_DRIVER_PYTHON="$SPARK_PYTHON"
 # dbt: project in dbt/, everything it writes under data/dbt/.
 export DBT_PROJECT_DIR="$REPO/dbt"
 export DBT_PROFILES_DIR="$REPO/dbt"
