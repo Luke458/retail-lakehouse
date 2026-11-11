@@ -16,8 +16,9 @@ Each iteration:
 3. Continue. Stop when every task is ticked, or the rest are blocked.
 
 Claude writes all the code, at the author's request. **Status: Part A in
-progress (A1-A4 done; A5 wrap-up open: destroy by the last trial day). Part B waits on B0
-and on the author's go.**
+progress (A1-A4 done; A5 wrap-up open: destroy by the last trial day). Part B started
+2026-11-11 at the author's request, ahead of January ("we definitely need some AWS");
+B1 done, the rest waits on B0 and the author's go with a spend limit.**
 
 ## Why these two, in this order
 
@@ -144,12 +145,13 @@ capping spend."
   - Create a Budget alert at US$5.
   - Configure `aws configure sso` with a profile named `retail-lakehouse`.
   - Give the go in chat, with the spend limit.
-- [ ] **B1. Spark version check, local, before any cloud work.** Glue 5.0
-  runs Spark 3.5, and the code targets Spark 4.x and Delta 4.x. Run the
-  Spark tests against PySpark 3.5 with Delta 3.x in a separate venv. If
-  anything fails, add a small compatibility layer.
-  - **Stop condition:** if it needs more than that, switch to EMR
-    Serverless with a newer release and record why in `decisions.md`.
+- [x] **B1. Glue version check, local, before any cloud work.** (Rewritten
+  2026-11-11.) The plan assumed Glue 5.x, which runs Spark 3.5. AWS has since
+  released **Glue 6.0: Spark 4.1.1, Python 3.13, Java 17, Delta Lake 4.2.0**,
+  with S3A as its only S3 connector. The code targets Spark 4.x, so the
+  check became Python 3.13 with PySpark 4.1.1 and delta-spark 4.2.0 in
+  `.venv-glue` (`scripts/setup.sh glue`). `requires-python` widened to
+  `<3.14` so the wheel installs on Glue.
 - [ ] **B2. OpenTofu for AWS** (`infra/aws/`):
   - the resources above;
   - tags on everything;
@@ -208,3 +210,4 @@ each cloud run matched the local run row for row and was destroyed."
 - 2026-11-11: A3 done: `snowflake` target in dbt/profiles.yml (env vars only, key-pair as LAKEHOUSE_DBT/TRANSFORMER); sources point at SILVER (gate decisions at SILVER.GATE_DECISIONS); two dispatch macros (`any_true`: bool_or vs boolor_agg; `ordered_string_agg`: string_agg vs listagg within group). Everything else (GROUP BY ALL, lateral aliases, FULL JOIN USING) ran unchanged. `dbt build --target snowflake`: PASS=33 (10 models, 23 tests, including gold_units_match_silver) on the first full build, and again incrementally for one week. Kept delete+insert by week rather than the planned merge: unique_key is week_ending, which is not unique per row. DuckDB gold rebuilt from current silver, PASS=33.
 - 2026-11-11: A4 done: `retail_lakehouse.gold_compare`: 5 models × 113 weeks, 35 checks per week, Snowflake equals DuckDB; a negative control (one value changed, one row deleted in a copy of DuckDB gold) fails on exactly those. Credits: 0.096 on TRANSFORM_XS for the session (INFORMATION_SCHEMA metering), monitor 0.10/10. Storage 416 MB. `notes/week-07-snowflake.md`.
 - 2026-11-11: A5 partly done: warehouse suspended (auto), stage empty; README, evidence.md (19-21), decisions.md (Week 7) updated. Open: PR to main; `tofu destroy` by the last trial day (about 2026-12-10), the author's call on keeping the objects until then.
+- 2026-11-11: Part B started at the author's request. B1 done: Glue 6.0 (Spark 4.1.1, Python 3.13, Delta 4.2.0) replaces the planned Spark 3.5 check. In `.venv-glue` with those versions: Spark tests 8 passed (1 skipped, as in CI), and the CI fixture pipeline (raw → bronze → silver → dbt gold) PASS=33. No compatibility layer needed; `requires-python` widened to <3.14. Note for B3: S3A is Glue 6.0's only S3 connector.

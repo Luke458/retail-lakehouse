@@ -31,6 +31,14 @@ if want dbt; then
   uv pip install --python .venv-dbt/bin/python "dbt-duckdb==1.11.1" "dbt-snowflake==1.12.5" "dbt-core==1.12.6" "duckdb==2.0.0"
   uv pip install --python .venv-dbt/bin/python --no-deps -e .
 fi
+# Optional, not in "all": the AWS Glue 6.0 runtime's versions (Python 3.13, Spark 4.1.1, Delta 4.2.0),
+# to test the Spark code against Glue before deploying: SPARK_PYTHON=$PWD/.venv-glue/bin/python scripts/ci.sh spark
+if [[ $only == glue ]]; then
+  uv venv --python 3.13 .venv-glue
+  uv pip install --python .venv-glue/bin/python "pyspark==4.1.1" "delta-spark==4.2.0" "duckdb==2.0.0" pyarrow \
+    "pandas<3" pytest
+  uv pip install --python .venv-glue/bin/python --no-deps -e .
+fi
 if want qc; then
   uv venv --python "$PY" .venv-qc
   uv pip install --python .venv-qc/bin/python "verity[delta] @ ${VERITY}" "duckdb==2.0.0"
