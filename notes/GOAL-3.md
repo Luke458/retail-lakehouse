@@ -16,7 +16,7 @@ Each iteration:
 3. Continue. Stop when every task is ticked, or the rest are blocked.
 
 Claude writes all the code, at the author's request. **Status: Part A in
-progress (A1-A3 done; A4 next). Part B waits on B0
+progress (A1-A4 done; A5 wrap-up open: destroy by the last trial day). Part B waits on B0
 and on the author's go.**
 
 ## Why these two, in this order
@@ -103,7 +103,7 @@ the IaC story covers a second platform.
 
   `dbt build --target snowflake` must pass all 22 tests, including the
   custom gold-equals-silver test.
-- [ ] **A4. Proof and cost:**
+- [x] **A4. Proof and cost:**
   - Gold on Snowflake equals gold on DuckDB for every served week. Compare
     row counts and sums per model, written to a report.
   - Credits used, from `ACCOUNT_USAGE.WAREHOUSE_METERING_HISTORY`, logged
@@ -206,3 +206,5 @@ each cloud run matched the local run row for row and was destroyed."
 - 2026-11-11: A1 applied with the author's go: 21 added; re-plan shows no changes; service-user logins, role boundaries, warehouse (suspended, cap attached) and monitor (10 credits, 0 used) checked. infra/snowflake/README.md written.
 - 2026-11-11: A2 done: `retail_lakehouse.snowflake_load` (DuckDB delta_scan → Parquet → PUT → COPY INTO a temp table → MERGE on business keys, plus deletes within loaded weeks). Full load of 113 approved weeks: 58,896,896 sales rows (73 s), all 113 weeks reconcile on counts and sums; a full rerun inserts, updates and deletes nothing. A tampered row and a stray row were repaired by the next run (1 updated, 1 deleted). First full reconcile flagged 2014-10-21: same row count, sums split by rounding to 3 dp after different float addition order; now unrounded with a 1e-9 relative tolerance. dbt-snowflake 1.12.5 added to .venv-dbt.
 - 2026-11-11: A3 done: `snowflake` target in dbt/profiles.yml (env vars only, key-pair as LAKEHOUSE_DBT/TRANSFORMER); sources point at SILVER (gate decisions at SILVER.GATE_DECISIONS); two dispatch macros (`any_true`: bool_or vs boolor_agg; `ordered_string_agg`: string_agg vs listagg within group). Everything else (GROUP BY ALL, lateral aliases, FULL JOIN USING) ran unchanged. `dbt build --target snowflake`: PASS=33 (10 models, 23 tests, including gold_units_match_silver) on the first full build, and again incrementally for one week. Kept delete+insert by week rather than the planned merge: unique_key is week_ending, which is not unique per row. DuckDB gold rebuilt from current silver, PASS=33.
+- 2026-11-11: A4 done: `retail_lakehouse.gold_compare`: 5 models × 113 weeks, 35 checks per week, Snowflake equals DuckDB; a negative control (one value changed, one row deleted in a copy of DuckDB gold) fails on exactly those. Credits: 0.096 on TRANSFORM_XS for the session (INFORMATION_SCHEMA metering), monitor 0.10/10. Storage 416 MB. `notes/week-07-snowflake.md`.
+- 2026-11-11: A5 partly done: warehouse suspended (auto), stage empty; README, evidence.md (19-21), decisions.md (Week 7) updated. Open: PR to main; `tofu destroy` by the last trial day (about 2026-12-10), the author's call on keeping the objects until then.

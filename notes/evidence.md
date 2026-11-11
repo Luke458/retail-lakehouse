@@ -2,8 +2,8 @@
 
 Source material for the author's CV v2 and interviews. Not CV text. Each
 line is a claim the repository supports, with where the proof is. Numbers
-are from real runs on 2026-11-04, 2026-11-05 and (the cloud run)
-2026-11-09.
+are from real runs on 2026-11-04, 2026-11-05, (the cloud run)
+2026-11-09 and (Snowflake) 2026-11-11.
 
 ## Authorship (read first)
 
@@ -107,6 +107,25 @@ the author also delegated the open questions, and Claude decided them
     (664,947 sales, 371 transactions). Cost under $1 (estimate).
     `notes/week-05.md`.
 
+## Second gold target (Snowflake)
+
+19. **One dbt project, two warehouses:** the same models build gold on
+    DuckDB and on Snowflake. Two dispatch macros cover the SQL that differs.
+    On Snowflake: 10 models and 23 data tests pass, including
+    gold-equals-silver. Gold on the two engines is equal for every model
+    and every one of 113 weeks (3,955 per-week checks); a deliberately
+    altered copy fails on exactly the altered values.
+    `notes/week-07-snowflake.md`.
+20. **Idempotent loader:** approved silver weeks go to Snowflake through
+    Parquet, `PUT`, `COPY INTO` and a `MERGE` on business keys. Full load:
+    113 weeks, 58.9M sales rows, every week reconciled. A rerun changes
+    nothing; a tampered row and a stray row were repaired by the next run.
+    `src/retail_lakehouse/snowflake_load.py`.
+21. **Provisioned and capped:** OpenTofu created the database, schemas,
+    warehouse, roles, key-pair service users, least-privilege grants and a
+    10-credit resource monitor (21 objects; a re-plan is clean). The whole
+    session used 0.096 credits, from trial credit. `infra/snowflake/`.
+
 ## Packaging
 
 18. **Fresh clone:** README, architecture diagram and runbook. A fresh clone
@@ -119,6 +138,8 @@ the author also delegated the open questions, and Claude decided them
 - A scheduled cloud deployment: the cloud run was one week, triggered by
   hand, with Airflow, dbt and the gate still local.
 - Containers: Airflow runs from a local `uv` install, not Podman.
+- A scheduled Snowflake load: the loader and the Snowflake dbt build run by
+  hand, not from Airflow.
 - AWS, Kafka, Scala: the other gaps in the upskill map (career-ops
   `node upskill.mjs`, 2026-11-05). The project addresses its CI/CD,
   Terraform and dbt gaps.
