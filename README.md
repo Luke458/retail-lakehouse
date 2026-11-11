@@ -55,7 +55,7 @@ flowchart LR
 | Bronze → silver | Deduplicate (exact and conflicting duplicates counted), then MERGE: update changed rows only (row hash), insert new, delete what the vendor stopped sending. Rerunning an unchanged week commits nothing | `spark/silver.py` |
 | Reconcile | DuckDB reads the raw file independently and must agree with Spark: raw = bronze + quarantine, parsed = bronze, distinct keys = silver, sums equal. No retry: a mismatch is a finding | `spark/reconcile.py` |
 | Gate | The week's store × item units are written as a new version of the gate's own Delta table; verity compares it with the previous version (contracts, missing stores and products, history revisions, the latest week against its forecast). PASS publishes; anything else quarantines, and a person can release the week | `gate.py`, `dags/publish_favorita.py` |
-| Gold | dbt-duckdb, incremental by week, reading only approved weeks; 22 tests plus "every served week equals silver"; source freshness | `dbt/` |
+| Gold | dbt, incremental by week, reading only approved weeks; 22 tests plus "every served week equals silver"; source freshness. Builds on DuckDB, and on Snowflake from the same models (`snowflake_load.py` copies approved silver there) | `dbt/` |
 
 ## What it has shown
 
@@ -88,6 +88,11 @@ Measured on the real data, with the numbers and the reasoning in `notes/`:
 - **Week 6:** this README, the runbook, a fresh-clone run, and a fix for
   silver's MERGE, which had been rewriting the whole table every week.
   (`week-06.md`)
+- **Week 7, Snowflake:** the same dbt project builds gold on Snowflake;
+  OpenTofu provisions it with least-privilege roles and a 10-credit
+  monitor, and an idempotent loader copies the approved silver weeks.
+  Gold on Snowflake equals gold on DuckDB for every model and all 113
+  weeks. (`week-07-snowflake.md`)
 
 Why it's built this way, and what breaks at 100x: `notes/decisions.md`.
 
@@ -128,6 +133,7 @@ writes stay inside the repo (`.airflow/`, `data/`).
 | `dbt/` | staging and gold models, tests, macros (`week_filter`: approved weeks only) |
 | `config/verity/` | verity's Favorita configuration |
 | `infra/` | OpenTofu: Azure resource group, ADLS Gen2, Databricks workspace, Unity Catalog, the transform job |
+| `infra/snowflake/` | OpenTofu: Snowflake database, warehouse, resource monitor, roles, service users, grants |
 | `scripts/` | setup, data, run and stop, CI, backfill, replay, demo, package |
 | `.github/workflows/` | CI on pull requests; deploy bundle on `main` |
 | `notes/` | weekly notes with proof, design decisions |

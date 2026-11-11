@@ -39,7 +39,10 @@ PY
 
 # Format and validate only: no credentials, no plan. Downloads the providers.
 infra_validate() {
-  (cd infra && tofu init -backend=false -input=false >/dev/null && tofu fmt -check -recursive && tofu validate)
+  (cd infra && tofu fmt -check -recursive)
+  for dir in infra infra/snowflake; do
+    (cd "$dir" && tofu init -backend=false -input=false >/dev/null && tofu validate)
+  done
 }
 
 case $stage in

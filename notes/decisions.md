@@ -368,6 +368,56 @@ alone.
   retention), and the tables want OPTIMIZE once partitions hold many small
   files.
 
+## Week 7: Snowflake as a second gold target
+
+**Why a second target at all.** Snowflake is the warehouse in about a
+quarter of Sydney data-engineering ads, usually with dbt. Building the same
+gold on it shows the dbt project isn't tied to DuckDB, and the comparison
+shows the two give the same answer.
+
+**Silver stays in the lake; only approved weeks travel.** Snowflake gets a
+copy of gate-approved silver, not the raw or bronze layers, so the gate
+still decides what any consumer sees, on either engine. The gate's
+decisions travel too, so dbt's approved-weeks filter is the same code on
+both.
+
+**Parquet, PUT, COPY, MERGE.** Parquet keeps the types, and an internal
+stage needs no cloud bucket or storage integration. `COPY` goes into a
+temporary table and a `MERGE` on the business keys applies it, so a rerun
+inserts nothing. The `MERGE` compares the business columns rather than
+silver's `row_hash`, which saves shipping a 32-character string on each of
+59M rows.
+
+**One copy of the models.** Two dispatch macros cover the differences.
+Everything else is SQL both engines accept. The gold models stay
+`delete+insert` by week on Snowflake: the unique key is the week, not a
+row, so `merge` would be the wrong strategy.
+
+**Least privilege and key pairs.** A loader role that can write only
+`SILVER`, a transformer role that can only read it and write `GOLD`, each
+with its own service user that has no password. The connection lives in
+`~/.config`, and the provider reads it from the environment, so the repo
+names no account.
+
+**Spend capped in the same apply.** The resource monitor is created with
+the warehouse and attached to it, and its quota variable refuses more than
+20 credits without a code change.
+
+**Reconcile without rounding.** Sums are compared unrounded, with a
+relative tolerance: rounding to 3 decimals split two totals that differed
+only by float addition order.
+
+### What breaks at 100x (Week 7)
+
+- `PUT` from one machine. At 100x, silver would be written to S3 (or ADLS)
+  and read through an external stage or Snowpipe, or as Iceberg tables
+  that both engines read, with no copy at all.
+- The full-history reconcile per run: per-week checks only for the weeks
+  loaded, plus a periodic full sweep.
+- One X-Small warehouse for everything. Separate warehouses for loading
+  and transforming, so a big load doesn't queue dbt, each with its own
+  monitor.
+
 ## Close-out: the author's questions, answered (2026-11-05)
 
 The author asked me to decide these. The reasons are in `notes/GOAL-2.md`.

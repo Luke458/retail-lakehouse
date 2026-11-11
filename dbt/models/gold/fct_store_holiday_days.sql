@@ -20,8 +20,8 @@ select
   d.date,
   d.store_nbr,
   count(a.description) > 0 as is_holiday,
-  bool_or(a.scope = 'national') is true as is_national_holiday,
-  string_agg(a.description, '; ' order by a.description) as holidays
+  {{ any_true("a.scope = 'national'") }} as is_national_holiday,
+  {{ ordered_string_agg('a.description', '; ', 'a.description') }} as holidays
 from days d
 left join applied a using (date, store_nbr)
 group by all

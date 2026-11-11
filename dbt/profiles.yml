@@ -6,3 +6,17 @@ retail_lakehouse:
       path: "{{ env_var('LAKE_ROOT') }}/gold/favorita.duckdb"
       extensions: [delta]
       threads: 4
+    # Second gold target (notes/GOAL-3.md). Run through scripts/snowflake.sh, which
+    # sets the account and the key path from ~/.config; nothing account-specific here.
+    snowflake:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT_IDENTIFIER', '') }}"
+      user: LAKEHOUSE_DBT
+      role: TRANSFORMER
+      authenticator: snowflake_jwt
+      private_key_path: "{{ env_var('SNOWFLAKE_DBT_KEY_PATH', '') }}"
+      warehouse: TRANSFORM_XS
+      database: RETAIL_LAKEHOUSE
+      schema: GOLD
+      threads: 4
+      query_tag: retail-lakehouse:dbt
