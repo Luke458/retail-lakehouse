@@ -1,0 +1,206 @@
+# Goal 3: dbt on Snowflake, and the pipeline on AWS
+
+Repo `~/Projects/retail-lakehouse`. Written 2026-11-09 from the Sydney
+market research (career-ops
+`data/research/reports/Sydney data engineering market 2026.md`) and
+career-ops `upskill.mjs`. After CV v2 the remaining real gaps are
+**Snowflake** (about a quarter of Sydney DE ad snippets, 3 evaluated
+reports) and **AWS** (about a third of snippets, 5 reports; tied with
+Azure). The project already covers Databricks, Azure, dbt, Terraform-style
+IaC and CI/CD. Each part below adds one platform without rewriting the
+pipeline, and ends with a proof table and a destroy.
+
+Each iteration:
+1. Read this file and do the first unchecked task, within the guardrails.
+2. Tick it and add one line to the log at the bottom.
+3. Continue. Stop when every task is ticked, or the rest are blocked.
+
+Claude writes all the code, at the author's request. **Status: Part A in
+progress (A1 applied; A2 next). Part B waits on B0
+and on the author's go.**
+
+## Why these two, in this order
+
+- **Snowflake first (December).** It costs no money: the trial gives
+  credits and needs no card. It reuses the dbt project as it is, and
+  "dbt on Snowflake" is the most common modern-stack pairing in Sydney ads
+  (Qantas, Xero). About 2 loop days.
+- **AWS second (January), and only if it's still worth it.** Do it if, after
+  the Christmas break, AWS shops are still at least a third of the
+  shortlist (career plan: "AWS certs unless AWS shops dominate"). It costs a
+  few dollars. The ASX ad shows the target vocabulary: S3, Glue, Glue Data
+  Catalog, Athena, Airflow, Terraform. About 3 loop days.
+- **Not doing:** Kafka/streaming (a different job; research says
+  deprioritise), Redshift (cost, and Athena covers SQL on S3), MWAA (about
+  US$1/hour minimum; Airflow stays local and triggers AWS).
+
+## Guardrails (in addition to GOAL-2's)
+
+- **Data:** public or synthetic only, no employer or supplier names.
+- **Git:**
+  - Branch per part (`snowflake`, `aws`); reach `main` through a PR with
+    green CI.
+  - Never force-push.
+  - CI stays credential-free: the new targets are tested locally;
+    CI keeps running dbt on DuckDB.
+- **Secrets:**
+  - No passwords, keys or account identifiers in the repo.
+  - Snowflake uses key-pair auth, with the private key in
+    `~/.config/retail-lakehouse/` (mode 600) and only an env var name in
+    `profiles.yml`.
+  - AWS uses an SSO or named profile in `~/.aws`, never access keys in
+    files.
+- **Spend:**
+  - **Part A: $0 cash.** Trial credits only, and a resource monitor
+    suspends the warehouse at 10 credits.
+  - **Part B: at most US$10**, region `ap-southeast-2`, with an AWS Budget
+    alert at US$5, and everything destroyed the same day.
+  - Before any apply, show the plan to the author. A new spend limit needs
+    the author's word, as in Week 5.
+- **Permission system:** if it blocks an action, don't work around it;
+  give the author the exact command.
+- **Never run podman.** At most 2 Spark JVMs at a time. Avoid ports
+  8000, 8080 and 8096.
+- **The CV is not edited from here.** After each part, the new claims go
+  to career-ops through its `add` mode, which needs the author's approval.
+
+## Part A: dbt gold on Snowflake
+
+**Design.** Silver stays in Delta on the local lake. A small loader exports
+the gate-approved weeks of silver (plus the reference tables) to Parquet,
+PUTs them to an internal stage, and runs `COPY INTO` into a `SILVER` schema.
+The same dbt models build `GOLD` on Snowflake from a new `snowflake` target.
+Where DuckDB and Snowflake SQL differ, `adapter.dispatch` macros cover it;
+there is no second copy of the models. Snowflake objects are created with
+OpenTofu (the `snowflakedb/snowflake` provider) in `infra/snowflake/`, so
+the IaC story covers a second platform.
+
+- [x] **A0. Author (blocking):**
+  - Sign up for a Snowflake trial: Enterprise edition, on AWS
+    `ap-southeast-2` (Sydney), so it lives in the same region as Part B.
+  - Run the one-off key-pair registration command I'll give you
+    (`ALTER USER … SET RSA_PUBLIC_KEY`) as ACCOUNTADMIN.
+  - Tell me the account identifier, via `~/.config/retail-lakehouse/snowflake.env`,
+    not in chat.
+- [x] **A1. OpenTofu for Snowflake** (`infra/snowflake/`):
+  - database `RETAIL_LAKEHOUSE` with schemas `SILVER` and `GOLD`;
+  - warehouse `TRANSFORM_XS` (X-Small, `AUTO_SUSPEND = 60`,
+    `AUTO_RESUME`);
+  - roles `TRANSFORMER` and `LOADER`, and a service user for dbt;
+  - a resource monitor at 10 credits that suspends the warehouse.
+
+  `tofu validate` joins `scripts/ci.sh infra`; plan and apply run locally only.
+- [ ] **A2. Loader:** `retail_lakehouse.snowflake_load`. It exports approved
+  weeks with DuckDB's Delta reader to Parquet, then PUT, COPY INTO and an
+  idempotent MERGE on the business keys, so a rerun loads nothing twice.
+  A row-count and sum check against silver goes in a reconcile report, like
+  the Spark one.
+- [ ] **A3. dbt on Snowflake:**
+  - a `snowflake` target in `dbt/profiles.yml` (env vars only);
+  - dispatch macros for the SQL differences (date functions, `QUALIFY`,
+    casts);
+  - the incremental models use `merge` on Snowflake.
+
+  `dbt build --target snowflake` must pass all 22 tests, including the
+  custom gold-equals-silver test.
+- [ ] **A4. Proof and cost:**
+  - Gold on Snowflake equals gold on DuckDB for every served week. Compare
+    row counts and sums per model, written to a report.
+  - Credits used, from `ACCOUNT_USAGE.WAREHOUSE_METERING_HISTORY`, logged
+    in `notes/week-07-snowflake.md`.
+  - A Snowsight screenshot is the author's to take.
+- [ ] **A5. Wrap up:**
+  - Suspend the warehouse.
+  - Decide whether the trial objects stay until the trial ends; they cost
+    nothing once suspended. Run `tofu destroy` at the latest on the last
+    trial day.
+  - Update the README, `notes/evidence.md` and `notes/decisions.md`
+    ("Why Snowflake as a second gold target, what breaks at 100x").
+  - PR to `main`.
+
+**CV line this would support** (draft, for career-ops `add`, after
+approval): "dbt gold models built on both DuckDB and Snowflake from one
+codebase; Snowflake provisioned with OpenTofu, with a resource monitor
+capping spend."
+
+## Part B: the transform on AWS (S3, Glue, Athena), triggered by Airflow
+
+**Design.** This is the Week 5 pattern on AWS:
+- **Infrastructure:** OpenTofu provisions an S3 lake bucket (versioned,
+  public access blocked, SSE-S3), a Glue Data Catalog database, an IAM role
+  for Glue with least privilege on that bucket, one Glue Spark job per
+  step, and an Athena workgroup with a results bucket and a bytes-scanned
+  limit.
+- **Code:** the wheel runs on Glue unchanged except for session setup.
+  Glue's Delta support (`--datalake-formats delta`) keeps the Delta code;
+  tables are registered in the Glue catalog so Athena can query silver.
+- **Orchestration:** local Airflow triggers the job through the Amazon
+  provider's `GlueJobOperator`, in a new `transform_favorita_aws` DAG, so
+  "Airflow orchestrating AWS Glue" is real.
+
+- [ ] **B0. Author (blocking):**
+  - Create the AWS account: root MFA, plus an IAM Identity Center user with
+    admin rights for the setup.
+  - Create a Budget alert at US$5.
+  - Configure `aws configure sso` with a profile named `retail-lakehouse`.
+  - Give the go in chat, with the spend limit.
+- [ ] **B1. Spark version check, local, before any cloud work.** Glue 5.0
+  runs Spark 3.5, and the code targets Spark 4.x and Delta 4.x. Run the
+  Spark tests against PySpark 3.5 with Delta 3.x in a separate venv. If
+  anything fails, add a small compatibility layer.
+  - **Stop condition:** if it needs more than that, switch to EMR
+    Serverless with a newer release and record why in `decisions.md`.
+- [ ] **B2. OpenTofu for AWS** (`infra/aws/`):
+  - the resources above;
+  - tags on everything;
+  - local state;
+  - `validate` added to CI.
+- [ ] **B3. Glue entry point and session:**
+  - `on_glue()` next to `on_databricks()`;
+  - `TABLE_ROOT=s3://…/tables`, `LAKE_ROOT=s3://…/files`. The `files`
+    side needs S3 I/O for drops and reports, since there is no FUSE
+    mount; it goes through a small filesystem shim (`fsspec`/`s3fs`).
+- [ ] **B4. Airflow:** a `transform_favorita_aws` DAG using
+  `GlueJobOperator` for bronze → silver → reconcile, with the same
+  dependencies and retries as the local DAG. AWS credentials come from the
+  SSO profile through an Airflow connection; nothing is stored in the repo.
+- [ ] **B5. One week on AWS:**
+  - apply;
+  - upload one week of raw data and the wheel;
+  - trigger from Airflow;
+  - query silver from Athena and compare it with the local run row for
+    row;
+  - `tofu destroy`;
+  - log timings and cost in `notes/week-08-aws.md`.
+
+  Cost comes from Cost Explorer the next day, and is marked as an
+  estimate until then.
+- [ ] **B6. Wrap up:**
+  - README, `evidence.md`, `decisions.md` ("Glue vs EMR Serverless vs
+    Databricks on AWS; what breaks at 100x").
+  - PR to `main`.
+
+**CV line this would support** (draft, for career-ops `add`, after
+approval): "Same Spark jobs run on Azure Databricks and AWS Glue (S3, Glue
+Data Catalog, Athena), provisioned with OpenTofu and triggered by Airflow;
+each cloud run matched the local run row for row and was destroyed."
+
+## Also worth doing alongside (author's call, not part of the loop)
+
+- **Certifications:**
+  - Databricks DE Associate first: the CV lists it as expected February
+    2027, so book it.
+  - The AWS Data Engineer Associate (DEA-C01) only if Part B is done and
+    AWS ads still dominate. The project and the cert cover the same ground,
+    so pick one unless an employer asks for the cert.
+- **Talking points:** after each part, read the new `decisions.md`
+  section until you can explain it without notes. Interviews test exactly
+  this for AI-assisted projects.
+
+## Log
+
+- 2026-11-09: written. Not started.
+- 2026-11-10: A0 prep: key pair, register_key.sql and snowflake.env template written to ~/.config/retail-lakehouse/ (mode 600). Waiting on the author's trial sign-up and key registration.
+- 2026-11-11: A0 done. Trial on AWS ap-southeast-2; key-pair login works (the admin user object is stored in lowercase, so SQL must double-quote its name). Two service-user key pairs added beside the admin key.
+- 2026-11-11: A1 written on branch `snowflake`: `infra/snowflake/` (provider snowflakedb ~> 2.23), `scripts/snowflake.sh` (connection from ~/.config), CI validates both roots. `tofu plan`: 21 to add. Waiting on the author's go to apply.
+- 2026-11-11: A1 applied with the author's go: 21 added; re-plan shows no changes; service-user logins, role boundaries, warehouse (suspended, cap attached) and monitor (10 credits, 0 used) checked. infra/snowflake/README.md written.
