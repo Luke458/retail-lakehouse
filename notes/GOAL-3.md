@@ -16,7 +16,7 @@ Each iteration:
 3. Continue. Stop when every task is ticked, or the rest are blocked.
 
 Claude writes all the code, at the author's request. **Status: Part A in
-progress (A1 applied; A2 next). Part B waits on B0
+progress (A1, A2 done; A3 next). Part B waits on B0
 and on the author's go.**
 
 ## Why these two, in this order
@@ -90,7 +90,7 @@ the IaC story covers a second platform.
   - a resource monitor at 10 credits that suspends the warehouse.
 
   `tofu validate` joins `scripts/ci.sh infra`; plan and apply run locally only.
-- [ ] **A2. Loader:** `retail_lakehouse.snowflake_load`. It exports approved
+- [x] **A2. Loader:** `retail_lakehouse.snowflake_load`. It exports approved
   weeks with DuckDB's Delta reader to Parquet, then PUT, COPY INTO and an
   idempotent MERGE on the business keys, so a rerun loads nothing twice.
   A row-count and sum check against silver goes in a reconcile report, like
@@ -204,3 +204,4 @@ each cloud run matched the local run row for row and was destroyed."
 - 2026-11-11: A0 done. Trial on AWS ap-southeast-2; key-pair login works (the admin user object is stored in lowercase, so SQL must double-quote its name). Two service-user key pairs added beside the admin key.
 - 2026-11-11: A1 written on branch `snowflake`: `infra/snowflake/` (provider snowflakedb ~> 2.23), `scripts/snowflake.sh` (connection from ~/.config), CI validates both roots. `tofu plan`: 21 to add. Waiting on the author's go to apply.
 - 2026-11-11: A1 applied with the author's go: 21 added; re-plan shows no changes; service-user logins, role boundaries, warehouse (suspended, cap attached) and monitor (10 credits, 0 used) checked. infra/snowflake/README.md written.
+- 2026-11-11: A2 done: `retail_lakehouse.snowflake_load` (DuckDB delta_scan → Parquet → PUT → COPY INTO a temp table → MERGE on business keys, plus deletes within loaded weeks). Full load of 113 approved weeks: 58,896,896 sales rows (73 s), all 113 weeks reconcile on counts and sums; a full rerun inserts, updates and deletes nothing. A tampered row and a stray row were repaired by the next run (1 updated, 1 deleted). First full reconcile flagged 2014-10-21: same row count, sums split by rounding to 3 dp after different float addition order; now unrounded with a 1e-9 relative tolerance. dbt-snowflake 1.12.5 added to .venv-dbt.

@@ -2,7 +2,7 @@
 # Create the four venvs. Each toolchain gets its own, because their pins conflict:
 #   .venv        Airflow 3.3.2, pinned to its constraints file
 #   .venv-spark  Spark 4.2 + Delta 4.4 + DuckDB (bronze, silver, reconcile)
-#   .venv-dbt    dbt-duckdb (gold)
+#   .venv-dbt    dbt-duckdb and dbt-snowflake (gold), and the Snowflake loader
 #   .venv-qc     verity, pinned to a commit (the gate)
 # DuckDB is pinned to one version in the three venvs that use it: they share the gold file.
 set -euo pipefail
@@ -28,7 +28,7 @@ if want spark; then
 fi
 if want dbt; then
   uv venv --python "$PY" .venv-dbt
-  uv pip install --python .venv-dbt/bin/python "dbt-duckdb==1.11.1" "dbt-core==1.12.6" "duckdb==2.0.0"
+  uv pip install --python .venv-dbt/bin/python "dbt-duckdb==1.11.1" "dbt-snowflake==1.12.5" "dbt-core==1.12.6" "duckdb==2.0.0"
   uv pip install --python .venv-dbt/bin/python --no-deps -e .
 fi
 if want qc; then
