@@ -48,6 +48,26 @@ def on_databricks() -> bool:
     return "DATABRICKS_RUNTIME_VERSION" in os.environ
 
 
+def on_glue() -> bool:
+    """Set by retail_lakehouse.glue, the Glue job's entry point."""
+    return os.environ.get("RETAIL_LAKEHOUSE_RUNTIME") == "glue"
+
+
+def on_managed_spark() -> bool:
+    """A platform that owns the Spark session (Delta configured by the job, not by us)."""
+    return on_databricks() or on_glue()
+
+
+def spark_uri(path: Path) -> str:
+    """Where Spark reads a lake file: the path itself, or with ``$LAKE_URI`` set (Glue) the same
+    file in S3, because Glue's executors cannot see the driver's local copy of the files side."""
+    uri = os.environ.get("LAKE_URI")
+    if not uri:
+        return str(path)
+    rel = Path(path).relative_to(lake_root())
+    return f"{uri.rstrip('/')}/{rel.as_posix()}"
+
+
 def table_root() -> str:
     """Where the Delta tables live: ``$TABLE_ROOT`` (``abfss://tables@<account>.dfs.core.windows.net/``
     on Databricks), else the lake folder. Files (drops, raw, reports) stay under ``lake_root()``,
@@ -66,10 +86,10 @@ def raw_file(feed: str, week=None) -> Path:
 
 
 def spark_session(app: str = "retail-lakehouse"):
-    """A local Spark with Delta, or on Databricks the runtime's own session (Delta built in)."""
+    """A local Spark with Delta, or on Databricks and Glue the platform's own session (Delta built in)."""
     from pyspark.sql import SparkSession
 
-    if on_databricks():
+    if on_managed_spark():
         return SparkSession.builder.appName(app).getOrCreate()
 
     from delta import configure_spark_with_delta_pip

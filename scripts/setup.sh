@@ -17,7 +17,7 @@ want() { [[ $only == all || $only == "$1" ]]; }
 if want airflow; then
   uv venv --python "$PY" .venv
   uv pip install --python .venv/bin/python --constraint "$CONSTRAINTS" \
-    "apache-airflow[smtp]==${AIRFLOW_VERSION}" pyarrow pandas pytest ruff aiosmtpd
+    "apache-airflow[smtp,amazon]==${AIRFLOW_VERSION}" "botocore[crt]" pyarrow pandas pytest ruff aiosmtpd
   uv pip install --python .venv/bin/python --no-deps -e .
 fi
 if want spark; then

@@ -23,7 +23,7 @@ from operator import or_
 from typing import Any
 
 from retail_lakehouse.landing import INGEST
-from retail_lakehouse.spark.common import KEYS, RAW_SCHEMAS, check_header, raw_file, table_path
+from retail_lakehouse.spark.common import KEYS, RAW_SCHEMAS, check_header, raw_file, spark_uri, table_path
 
 MAX_BAD_FRACTION = 0.01
 
@@ -60,7 +60,7 @@ def load_week(spark, feed: str, week: date, run_id: str) -> dict[str, Any]:
 
     check_header(source, feed)
     raw = spark.read.csv(
-        str(source),
+        spark_uri(source),
         schema=f"{RAW_SCHEMAS[feed]}, _corrupt_record STRING",
         header=True,
         mode="PERMISSIVE",
