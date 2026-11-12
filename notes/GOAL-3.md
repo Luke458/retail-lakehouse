@@ -16,9 +16,8 @@ Each iteration:
 3. Continue. Stop when every task is ticked, or the rest are blocked.
 
 Claude writes all the code, at the author's request. **Status: Part A in
-progress (A1-A4 done; A5 wrap-up open: destroy by the last trial day). Part B started
-2026-11-11 at the author's request, ahead of January ("we definitely need some AWS");
-B1 done, the rest waits on B0 and the author's go with a spend limit.**
+progress (A1-A4 done; A5 wrap-up open: destroy by the last trial day). Part B done
+2026-11-12 (started early at the author's request), merged through the `aws` PR.**
 
 ## Why these two, in this order
 
@@ -152,7 +151,7 @@ capping spend."
   check became Python 3.13 with PySpark 4.1.1 and delta-spark 4.2.0 in
   `.venv-glue` (`scripts/setup.sh glue`). `requires-python` widened to
   `<3.14` so the wheel installs on Glue.
-- [ ] **B2. OpenTofu for AWS** (`infra/aws/`):
+- [x] **B2. OpenTofu for AWS** (`infra/aws/`):
   - the resources above;
   - tags on everything;
   - local state;
@@ -166,7 +165,7 @@ capping spend."
   `GlueJobOperator` for bronze → silver → reconcile, with the same
   dependencies and retries as the local DAG. AWS credentials come from the
   SSO profile through an Airflow connection; nothing is stored in the repo.
-- [ ] **B5. One week on AWS:**
+- [x] **B5. One week on AWS:**
   - apply;
   - upload one week of raw data and the wheel;
   - trigger from Airflow;
@@ -177,7 +176,7 @@ capping spend."
 
   Cost comes from Cost Explorer the next day, and is marked as an
   estimate until then.
-- [ ] **B6. Wrap up:**
+- [x] **B6. Wrap up:**
   - README, `evidence.md`, `decisions.md` ("Glue vs EMR Serverless vs
     Databricks on AWS; what breaks at 100x").
   - PR to `main`.
@@ -215,3 +214,4 @@ each cloud run matched the local run row for row and was destroyed."
 - 2026-11-12: B2 written: `infra/aws/` (lake bucket: versioned, public access blocked, SSE-S3, owner-enforced, 1-day noncurrent expiry; Athena results bucket and workgroup with a 1 GiB scan cutoff; Glue database; least-privilege Glue role; one Glue 6.0 job, G.1X x2, 30-min timeout, no retries; log group with 7-day retention). Plan: 17 to add. Waiting on the author's go to apply.
 - 2026-11-12: B3 done: `retail_lakehouse.glue` stages the files a step reads with Python from S3 to the driver's disk and uploads `reports/` after (also on failure); Spark reads raw CSVs from S3 (`spark_uri`); `on_managed_spark()` covers Databricks and Glue. 5 new tests with a fake S3; Spark tests unchanged (8 passed). One Glue job for every step (`--step`), as the Databricks job had one task per step, instead of one job per step.
 - 2026-11-12: B4 done: `transform_favorita_aws` (manual, `week` param): per feed upload_raw -> bronze -> silver -> reconcile (GlueJobOperator) -> check (reads the reconcile report from S3); retries as the local DAG. Amazon provider 9.36.0 and botocore[crt] (needed for `aws login` profiles) added to .venv via the Airflow constraints. `scripts/aws.sh` wraps profile, connection and the OpenTofu outputs.
+- 2026-11-12: B2 applied with the author's go (limit US$10): 17 added. B5 done: `transform_favorita_aws` ran week 2016-05-24 on Glue 6.0 in 6 min 37 s (bronze 89/97 s, silver 121/123 s, reconcile 68/77 s); Glue's reconcile reports pass with the local counts (664,947 sales, 371 transactions). Athena read silver as Delta and matched local silver on rows, distinct keys, sums and an md5 fingerprint over keys and values. Both silver tasks were first rejected with ConcurrentRunsExceededException (Glue counts a finished run briefly); retry passed; limit raised 2 -> 4 in place. 1,151 DPU-seconds, estimate under US$0.20 (Glue US$0.308/DPU-h, Price List API). `tofu destroy` 17 at 03:41 UTC, about 9 minutes after apply; Glue's 3 default log groups deleted. B6: notes/week-08-aws.md, infra/aws/README.md, evidence.md, decisions.md, README.

@@ -31,7 +31,9 @@ resource "aws_glue_job" "spark" {
   }
 
   execution_property {
-    max_concurrent_runs = 2 # sales and transactions side by side
+    # Two feeds side by side, plus headroom: Glue keeps counting a finished run for a short while,
+    # so a limit of 2 rejected the next step started right after one finished (ConcurrentRunsExceeded).
+    max_concurrent_runs = 4
   }
 
   default_arguments = {

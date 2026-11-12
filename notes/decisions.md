@@ -418,6 +418,49 @@ only by float addition order.
   and transforming, so a big load doesn't queue dbt, each with its own
   monitor.
 
+## Week 8: the transform on AWS Glue
+
+**Glue, not EMR Serverless or Databricks on AWS.** Glue 6.0 runs Spark 4.1
+with Delta 4.2, so the code ran as it is. It bills per second with no
+cluster to manage, and the Price List API puts it at US$0.308 per DPU-hour in
+Sydney. Databricks on AWS would only repeat Week 5. EMR Serverless was the
+fallback if Glue's Spark had been too old (the plan's B1 stop condition);
+it wasn't needed.
+
+**One job, a step argument.** One Glue job runs every step (`--step`),
+as the Databricks job ran one task per step. Airflow keeps the order,
+retries and alerts, so the platform stays a place to run Spark, not a second
+orchestrator.
+
+**Stage the files, keep the tables in S3.** The Spark code reads a few
+plain files with Python (the drop's manifest, the header check, DuckDB's
+independent read) and writes a JSON report. Rather than rewrite those
+around an S3 library, the entry point copies the week's drop to the
+driver's disk and uploads the reports after. Spark reads the same raw file
+from S3, because Glue's executors cannot see the driver's disk. The change
+to the jobs is one helper (`spark_uri`) used in two reads.
+
+**Temporary credentials only.** `aws login` on a named profile, used by the
+CLI, OpenTofu and Airflow alike. No access keys exist for this project.
+
+**Checking row for row without moving the data.** Athena reads the Delta
+tables in place. An order-independent fingerprint (the sum of a hash of
+each row's keys and values) compares 665k rows with one number per side,
+so the check costs one small query instead of a download.
+
+### What breaks at 100x (Week 8)
+
+- Staging the drop on the driver's disk: at 100x the files side moves to
+  S3-native reads (`fsspec`/`s3fs` in the few places that read files) and
+  the manifest check moves into Spark.
+- A Glue job per step per week, each paying about 30-60 s of start-up and a
+  pip install: at 100x, one run per week covering all steps, the wheel's
+  dependencies in a Glue Python virtual environment
+  (`--python-virtual-env`), and Glue Flex for the cheaper rate.
+- Athena over path-registered tables: a catalog managed alongside the
+  tables (Glue catalog updates from the job, or Iceberg/S3 Tables) so
+  consumers never register tables by hand.
+
 ## Close-out: the author's questions, answered (2026-11-05)
 
 The author asked me to decide these. The reasons are in `notes/GOAL-2.md`.
