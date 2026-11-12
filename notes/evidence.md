@@ -3,7 +3,7 @@
 Source material for the author's CV v2 and interviews. Not CV text. Each
 line is a claim the repository supports, with where the proof is. Numbers
 are from real runs on 2026-11-04, 2026-11-05, (the cloud run)
-2026-11-09 and (Snowflake) 2026-11-11.
+2026-11-09, (Snowflake) 2026-11-11 and (AWS) 2026-11-12.
 
 ## Authorship (read first)
 
@@ -126,6 +126,23 @@ the author also delegated the open questions, and Claude decided them
     10-credit resource monitor (21 objects; a re-plan is clean). The whole
     session used 0.096 credits, from trial credit. `infra/snowflake/`.
 
+## The transform on AWS (Glue, S3, Athena)
+
+22. **Same Spark jobs on a third platform:** the wheel that runs locally and
+    on Azure Databricks ran bronze → silver → reconcile on AWS Glue 6.0
+    (Spark 4.1), started by Airflow through `GlueJobOperator`. For week
+    2016-05-24, Glue's reconcile reports match the local and Databricks
+    counts (664,947 sales, 371 transactions). `notes/week-08-aws.md`.
+23. **Row for row via Athena:** Athena read silver on S3 as Delta tables and
+    matched local silver on rows, distinct keys, sums and an
+    order-independent md5 fingerprint over every row's keys and values.
+24. **Provisioned, capped and destroyed:** OpenTofu created the S3 lake
+    (versioned, no public access, encrypted), a least-privilege Glue role,
+    the Glue job, a Glue database and an Athena workgroup with a 1 GiB scan
+    cutoff (17 resources). Run, checked and destroyed in about 9 minutes;
+    1,151 DPU-seconds, under US$0.20 (estimate). Temporary credentials only
+    (`aws login`), no access keys. `infra/aws/`.
+
 ## Packaging
 
 18. **Fresh clone:** README, architecture diagram and runbook. A fresh clone
@@ -140,6 +157,8 @@ the author also delegated the open questions, and Claude decided them
 - Containers: Airflow runs from a local `uv` install, not Podman.
 - A scheduled Snowflake load: the loader and the Snowflake dbt build run by
   hand, not from Airflow.
-- AWS, Kafka, Scala: the other gaps in the upskill map (career-ops
+- A standing AWS deployment: the AWS run was one week, started by hand, with
+  gold and the gate still local.
+- Kafka, Scala: the other gaps in the upskill map (career-ops
   `node upskill.mjs`, 2026-11-05). The project addresses its CI/CD,
   Terraform and dbt gaps.

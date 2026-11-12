@@ -20,7 +20,7 @@ export PATH="$REPO/.venv/bin:$PATH"
 # on JDK 21 (Spark 4.2 does not run on the system's Java 27).
 # In GitHub Actions, actions/setup-java exports JAVA_HOME_21_X64.
 export JAVA_HOME="${LAKEHOUSE_JAVA_HOME:-${JAVA_HOME_21_X64:-$HOME/.local/opt/jdk-21.0.13+9}}"
-export SPARK_PYTHON="$REPO/.venv-spark/bin/python"
+export SPARK_PYTHON="${SPARK_PYTHON:-$REPO/.venv-spark/bin/python}"  # override to test another Spark venv (.venv-glue)
 # Spark starts its Python workers with `python3` from PATH unless told otherwise; on a
 # machine whose default python3 is another minor version (GitHub's runners moved to 3.14)
 # they refuse to run. Pin driver and workers to the Spark venv.

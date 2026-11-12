@@ -2,7 +2,7 @@
 name = "retail-lakehouse"
 version = "0.1.0"
 description = "Weekly retail drops through Airflow, Spark and dbt, with verity as the quality gate."
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.12,<3.14"
 # Airflow is installed separately against its constraints file; see scripts/setup.sh.
 dependencies = ["pyarrow", "pandas"]
 

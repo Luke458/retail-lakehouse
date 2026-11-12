@@ -16,8 +16,8 @@ Each iteration:
 3. Continue. Stop when every task is ticked, or the rest are blocked.
 
 Claude writes all the code, at the author's request. **Status: Part A in
-progress (A1-A4 done; A5 wrap-up open: destroy by the last trial day). Part B waits on B0
-and on the author's go.**
+progress (A1-A4 done; A5 wrap-up open: destroy by the last trial day). Part B done
+2026-11-12 (started early at the author's request), merged through the `aws` PR.**
 
 ## Why these two, in this order
 
@@ -138,33 +138,34 @@ capping spend."
   provider's `GlueJobOperator`, in a new `transform_favorita_aws` DAG, so
   "Airflow orchestrating AWS Glue" is real.
 
-- [ ] **B0. Author (blocking):**
+- [x] **B0. Author (blocking):**
   - Create the AWS account: root MFA, plus an IAM Identity Center user with
     admin rights for the setup.
   - Create a Budget alert at US$5.
   - Configure `aws configure sso` with a profile named `retail-lakehouse`.
   - Give the go in chat, with the spend limit.
-- [ ] **B1. Spark version check, local, before any cloud work.** Glue 5.0
-  runs Spark 3.5, and the code targets Spark 4.x and Delta 4.x. Run the
-  Spark tests against PySpark 3.5 with Delta 3.x in a separate venv. If
-  anything fails, add a small compatibility layer.
-  - **Stop condition:** if it needs more than that, switch to EMR
-    Serverless with a newer release and record why in `decisions.md`.
-- [ ] **B2. OpenTofu for AWS** (`infra/aws/`):
+- [x] **B1. Glue version check, local, before any cloud work.** (Rewritten
+  2026-11-11.) The plan assumed Glue 5.x, which runs Spark 3.5. AWS has since
+  released **Glue 6.0: Spark 4.1.1, Python 3.13, Java 17, Delta Lake 4.2.0**,
+  with S3A as its only S3 connector. The code targets Spark 4.x, so the
+  check became Python 3.13 with PySpark 4.1.1 and delta-spark 4.2.0 in
+  `.venv-glue` (`scripts/setup.sh glue`). `requires-python` widened to
+  `<3.14` so the wheel installs on Glue.
+- [x] **B2. OpenTofu for AWS** (`infra/aws/`):
   - the resources above;
   - tags on everything;
   - local state;
   - `validate` added to CI.
-- [ ] **B3. Glue entry point and session:**
+- [x] **B3. Glue entry point and session:**
   - `on_glue()` next to `on_databricks()`;
   - `TABLE_ROOT=s3://…/tables`, `LAKE_ROOT=s3://…/files`. The `files`
     side needs S3 I/O for drops and reports, since there is no FUSE
     mount; it goes through a small filesystem shim (`fsspec`/`s3fs`).
-- [ ] **B4. Airflow:** a `transform_favorita_aws` DAG using
+- [x] **B4. Airflow:** a `transform_favorita_aws` DAG using
   `GlueJobOperator` for bronze → silver → reconcile, with the same
   dependencies and retries as the local DAG. AWS credentials come from the
   SSO profile through an Airflow connection; nothing is stored in the repo.
-- [ ] **B5. One week on AWS:**
+- [x] **B5. One week on AWS:**
   - apply;
   - upload one week of raw data and the wheel;
   - trigger from Airflow;
@@ -175,7 +176,7 @@ capping spend."
 
   Cost comes from Cost Explorer the next day, and is marked as an
   estimate until then.
-- [ ] **B6. Wrap up:**
+- [x] **B6. Wrap up:**
   - README, `evidence.md`, `decisions.md` ("Glue vs EMR Serverless vs
     Databricks on AWS; what breaks at 100x").
   - PR to `main`.
@@ -208,3 +209,9 @@ each cloud run matched the local run row for row and was destroyed."
 - 2026-11-11: A3 done: `snowflake` target in dbt/profiles.yml (env vars only, key-pair as LAKEHOUSE_DBT/TRANSFORMER); sources point at SILVER (gate decisions at SILVER.GATE_DECISIONS); two dispatch macros (`any_true`: bool_or vs boolor_agg; `ordered_string_agg`: string_agg vs listagg within group). Everything else (GROUP BY ALL, lateral aliases, FULL JOIN USING) ran unchanged. `dbt build --target snowflake`: PASS=33 (10 models, 23 tests, including gold_units_match_silver) on the first full build, and again incrementally for one week. Kept delete+insert by week rather than the planned merge: unique_key is week_ending, which is not unique per row. DuckDB gold rebuilt from current silver, PASS=33.
 - 2026-11-11: A4 done: `retail_lakehouse.gold_compare`: 5 models × 113 weeks, 35 checks per week, Snowflake equals DuckDB; a negative control (one value changed, one row deleted in a copy of DuckDB gold) fails on exactly those. Credits: 0.096 on TRANSFORM_XS for the session (INFORMATION_SCHEMA metering), monitor 0.10/10. Storage 416 MB. `notes/week-07-snowflake.md`.
 - 2026-11-11: A5 partly done: warehouse suspended (auto), stage empty; README, evidence.md (19-21), decisions.md (Week 7) updated. Open: PR to main; `tofu destroy` by the last trial day (about 2026-12-10), the author's call on keeping the objects until then.
+- 2026-11-11: Part B started at the author's request. B1 done: Glue 6.0 (Spark 4.1.1, Python 3.13, Delta 4.2.0) replaces the planned Spark 3.5 check. In `.venv-glue` with those versions: Spark tests 8 passed (1 skipped, as in CI), and the CI fixture pipeline (raw → bronze → silver → dbt gold) PASS=33. No compatibility layer needed; `requires-python` widened to <3.14. Note for B3: S3A is Glue 6.0's only S3 connector.
+- 2026-11-12: B0 done: the author's own AWS Organization; the project uses its member account (not the management account), CLI through `aws login` on a named profile (temporary credentials, no keys). Root MFA on the management account; a US$5 monthly budget with email alerts (80% forecast, 100% actual) created in the member account. Spend limit for Part B: US$10 (author, 2026-11-12).
+- 2026-11-12: B2 written: `infra/aws/` (lake bucket: versioned, public access blocked, SSE-S3, owner-enforced, 1-day noncurrent expiry; Athena results bucket and workgroup with a 1 GiB scan cutoff; Glue database; least-privilege Glue role; one Glue 6.0 job, G.1X x2, 30-min timeout, no retries; log group with 7-day retention). Plan: 17 to add. Waiting on the author's go to apply.
+- 2026-11-12: B3 done: `retail_lakehouse.glue` stages the files a step reads with Python from S3 to the driver's disk and uploads `reports/` after (also on failure); Spark reads raw CSVs from S3 (`spark_uri`); `on_managed_spark()` covers Databricks and Glue. 5 new tests with a fake S3; Spark tests unchanged (8 passed). One Glue job for every step (`--step`), as the Databricks job had one task per step, instead of one job per step.
+- 2026-11-12: B4 done: `transform_favorita_aws` (manual, `week` param): per feed upload_raw -> bronze -> silver -> reconcile (GlueJobOperator) -> check (reads the reconcile report from S3); retries as the local DAG. Amazon provider 9.36.0 and botocore[crt] (needed for `aws login` profiles) added to .venv via the Airflow constraints. `scripts/aws.sh` wraps profile, connection and the OpenTofu outputs.
+- 2026-11-12: B2 applied with the author's go (limit US$10): 17 added. B5 done: `transform_favorita_aws` ran week 2016-05-24 on Glue 6.0 in 6 min 37 s (bronze 89/97 s, silver 121/123 s, reconcile 68/77 s); Glue's reconcile reports pass with the local counts (664,947 sales, 371 transactions). Athena read silver as Delta and matched local silver on rows, distinct keys, sums and an md5 fingerprint over keys and values. Both silver tasks were first rejected with ConcurrentRunsExceededException (Glue counts a finished run briefly); retry passed; limit raised 2 -> 4 in place. 1,151 DPU-seconds, estimate under US$0.20 (Glue US$0.308/DPU-h, Price List API). `tofu destroy` 17 at 03:41 UTC, about 9 minutes after apply; Glue's 3 default log groups deleted. B6: notes/week-08-aws.md, infra/aws/README.md, evidence.md, decisions.md, README.

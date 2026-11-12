@@ -170,13 +170,13 @@ def record_load(spark, feed: str, week: date, checksum: str, version: int, run_i
 
 def load_reference(spark, run_id: str) -> dict[str, Any]:
     """Small dimensions: replace each silver table from the latest raw reference drop."""
-    from retail_lakehouse.spark.common import check_header
+    from retail_lakehouse.spark.common import check_header, spark_uri
 
     counts = {}
     for name in REFERENCE:
         path = raw_file(name)
         check_header(path, name)
-        frame = spark.read.csv(str(path), schema=RAW_SCHEMAS[name], header=True, mode="FAILFAST")
+        frame = spark.read.csv(spark_uri(path), schema=RAW_SCHEMAS[name], header=True, mode="FAILFAST")
         frame.write.format("delta").mode("overwrite").save(table_path("silver", name))
         counts[name] = frame.count()
     return {"action": "loaded", "rows": counts}

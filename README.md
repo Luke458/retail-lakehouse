@@ -93,6 +93,10 @@ Measured on the real data, with the numbers and the reasoning in `notes/`:
   monitor, and an idempotent loader copies the approved silver weeks.
   Gold on Snowflake equals gold on DuckDB for every model and all 113
   weeks. (`week-07-snowflake.md`)
+- **Week 8, AWS:** OpenTofu for S3, Glue, the Glue catalog and Athena; local
+  Airflow ran one week bronze → silver → reconcile on Glue, Athena matched
+  silver to the local run row for row, then `tofu destroy`.
+  (`week-08-aws.md`)
 
 Why it's built this way, and what breaks at 100x: `notes/decisions.md`.
 
@@ -128,11 +132,12 @@ writes stay inside the repo (`.airflow/`, `data/`).
 
 | Path | What |
 |---|---|
-| `dags/` | `ingest_favorita`, `transform_favorita`, `publish_favorita` (weekly), `ingest_reference` (on demand) |
+| `dags/` | `ingest_favorita`, `transform_favorita`, `publish_favorita` (weekly), `ingest_reference` (on demand), `transform_favorita_aws` (one week on Glue, by hand) |
 | `src/retail_lakehouse/` | `drops.py` (vendor simulator), `landing.py`, `spark/` (bronze, silver, reconcile), `gate.py`, `gold.py` (fingerprint), `fixture.py` (CI lake) |
 | `dbt/` | staging and gold models, tests, macros (`week_filter`: approved weeks only) |
 | `config/verity/` | verity's Favorita configuration |
 | `infra/` | OpenTofu: Azure resource group, ADLS Gen2, Databricks workspace, Unity Catalog, the transform job |
+| `infra/aws/` | OpenTofu: S3 lake, Glue job and role, Glue catalog, Athena workgroup |
 | `infra/snowflake/` | OpenTofu: Snowflake database, warehouse, resource monitor, roles, service users, grants |
 | `scripts/` | setup, data, run and stop, CI, backfill, replay, demo, package |
 | `.github/workflows/` | CI on pull requests; deploy bundle on `main` |

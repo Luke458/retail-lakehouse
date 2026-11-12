@@ -17,7 +17,7 @@ want() { [[ $only == all || $only == "$1" ]]; }
 if want airflow; then
   uv venv --python "$PY" .venv
   uv pip install --python .venv/bin/python --constraint "$CONSTRAINTS" \
-    "apache-airflow[smtp]==${AIRFLOW_VERSION}" pyarrow pandas pytest ruff aiosmtpd
+    "apache-airflow[smtp,amazon]==${AIRFLOW_VERSION}" "botocore[crt]" pyarrow pandas pytest ruff aiosmtpd
   uv pip install --python .venv/bin/python --no-deps -e .
 fi
 if want spark; then
@@ -30,6 +30,14 @@ if want dbt; then
   uv venv --python "$PY" .venv-dbt
   uv pip install --python .venv-dbt/bin/python "dbt-duckdb==1.11.1" "dbt-snowflake==1.12.5" "dbt-core==1.12.6" "duckdb==2.0.0"
   uv pip install --python .venv-dbt/bin/python --no-deps -e .
+fi
+# Optional, not in "all": the AWS Glue 6.0 runtime's versions (Python 3.13, Spark 4.1.1, Delta 4.2.0),
+# to test the Spark code against Glue before deploying: SPARK_PYTHON=$PWD/.venv-glue/bin/python scripts/ci.sh spark
+if [[ $only == glue ]]; then
+  uv venv --python 3.13 .venv-glue
+  uv pip install --python .venv-glue/bin/python "pyspark==4.1.1" "delta-spark==4.2.0" "duckdb==2.0.0" pyarrow \
+    "pandas<3" pytest
+  uv pip install --python .venv-glue/bin/python --no-deps -e .
 fi
 if want qc; then
   uv venv --python "$PY" .venv-qc
